@@ -58,7 +58,7 @@ void loop() {
     // scroll one position left:
     lcd.scrollDisplayLeft(); 
     // wait a bit:
-    delay(150);
+    delay(150-10*positionCounter);
   }
 
   // scroll 29 positions (string length + display length) to the right
@@ -67,7 +67,15 @@ void loop() {
     // scroll one position right:
     lcd.scrollDisplayRight(); 
     // wait a bit:
-    delay(150);
+    if (positionCounter < 14) {
+    delay(5+10*positionCounter);
+    }
+    else if (positionCounter > 17){
+      delay(150-10*(positionCounter-18));
+    }
+    else {
+      delay(150);
+    }
   }
   
     // scroll 16 positions (display length + string length) to the left
@@ -76,7 +84,7 @@ void loop() {
     // scroll one position left:
     lcd.scrollDisplayLeft(); 
     // wait a bit:
-    delay(150);
+    delay(5+15*positionCounter);
   }
   
   // delay at the end of the full loop:
