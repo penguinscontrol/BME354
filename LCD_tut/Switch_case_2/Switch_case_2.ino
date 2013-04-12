@@ -61,13 +61,13 @@ int debounce(int last)
 int increment(int num)
 {
   num++;
-  if (num > 60) num = 0;
+  if (num > 59) num = 0;
   return num;
 }
 int decrement(int num)
 {
   num--;
-  if (num < 0) num = 60;
+  if (num < 0) num = 59;
   return num;
 }
 void printtime(void)
@@ -93,6 +93,12 @@ void printtime(void)
       lcd.print("0");
       lcd.print(seconds);    
     }
+}
+void time_passes()
+{
+  delay(1000);
+  seconds = decrement(seconds);
+  if (seconds == 59) minutes = decrement(minutes);
 }
 void setup()
 {
@@ -122,11 +128,13 @@ switch (select)
      }
      case btnDOWN:
      {
+       delay(wait_len);
        minutes = decrement(minutes);
        break;
      }
      case btnSELECT:
      {
+       delay(wait_len);
        select = 1;
        break;
      }
@@ -148,12 +156,15 @@ switch (select)
      }
      case btnDOWN:
      {
+       delay(wait_len);
        seconds = decrement(seconds);
        break;
      }
      case btnSELECT:
      {
+       delay(wait_len);
        select = 2;
+       lcd.clear(); 
        break;
      }
    }
@@ -161,7 +172,11 @@ switch (select)
   }
   case 2:
   {
-    break;
+   lcd.setCursor(0,0);  
+   lcd.print("GO!");
+   time_passes();
+   printtime();
+   break;
   }
 }
 }
