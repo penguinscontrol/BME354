@@ -4,11 +4,40 @@
 This program will test the LCD panel and the buttons
 Mark Bramwell, July 2010
 Modified by Group 06, April 2013
-********************************************************/
+
+USER MANUAL
+The device begins with reading in minutes and seconds for the timer.
+1. To set minutes, increment and decrement the value using UP and DOWN.
+2. When done, press SELECT to go to seconds selection.
+3. UP and DOWN to select seconds
+4. Press SELECT again to start timer.
+5. The RIGHT button toggles the timer on/off
+6. When time is 00:00, the world commences to burn.
+******************************************************/
 // select the pins used on the LCD panel
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 // define some values used by the panel and buttons
+byte flame1[8] = {
+        B00100,
+        B01100,
+        B01010,
+        B01010,
+        B10011,
+        B11011,
+        B11111,
+        B01110
+};
 
+byte flame2[8] = {
+        B00100,
+        B00110,
+        B01110,
+        B01010,
+        B11001,
+        B11001,
+        B11111,
+        B01110
+};
 // Timer Variables
 int minutes = 0;
 int seconds = 0;
@@ -20,10 +49,10 @@ int select = 0;
 // Variables
 int buttonPin = A0;
 
-int lcd_key = 0;
-int adc_key_in = 0;
-int wait_len = 200; // wait to avoid repeat readinsg
-boolean running = 1; //should we be pausing
+int lcd_key = 0; // what button is being pressed?
+int adc_key_in = 0; // what voltage is being applied to button pin?
+int wait_len = 150; // wait to avoid repeat readinsg
+boolean running = 1; //should we be pausing?
 #define btnRIGHT 0
 #define btnUP 1
 #define btnDOWN 2
@@ -98,7 +127,6 @@ void printtime(void) // print the current minutes:seconds combo in the bottom le
 }
 void time_passes() // increment time while in RUN mode
 {
-  delay(1000);
   seconds = decrement(seconds);
   if (seconds == 59) minutes = decrement(minutes);
 }
@@ -106,12 +134,23 @@ void setup()
 {
 lcd.begin(16, 2); // start the library
 Serial.begin(9600);
+    lcd.createChar(1, flame1);
+    lcd.createChar(2, flame2);
 }
 
 
 void loop()
 {
 lcd_key = read_LCD_buttons(); // read the buttons
+   if (lcd_key == btnRIGHT) //&& last_button != btnRIGHT) 
+   {
+     running = !running; // toggle stopwatch on or off
+     delay(200); // Frank
+     Serial.print("lcd_key is: ");
+     Serial.println(lcd_key);
+     Serial.print("Running is: ");
+     Serial.println(running);
+   }
 switch (select) // which stage are we at?
 {
   case 0: // MIN selection mode
@@ -173,18 +212,41 @@ switch (select) // which stage are we at?
   }
   case 2: // Running mode
   {
+
    lcd.setCursor(0,0);  
    lcd.print("GO!");
-   if (running) {
+   while (running) { // if ON, time passes
+
+   int timer = millis();
+   int check = millis();
+   while(check < timer + 1000) {           
+       Serial.print("Timer is: ");
+       Serial.println(timer);
+       Serial.print("Check is: ");
+       Serial.println(check);
+     check = millis();
+     lcd_key = read_LCD_buttons(); // read the buttons
+     if (lcd_key == btnRIGHT)
+       {
+       running = !running;
+       delay(wait_len); // toggle stopwatch on or off
+       break;
+       }
+   }
    time_passes();
    printtime();
+   if (minutes == 0 && seconds == 0) {
+     select = 3;
+     break;
    }
-   if (lcd_key == btnRIGHT) 
-   {
-     delay(wait_len);
-     running = !running;
    }
    break;
+  }
+  case 3: //VICTORY!
+  {
+    lcd.write(1); // FLAMES!~!!!
+    lcd.write(2);
+    delay(50);
   }
 }
 }
