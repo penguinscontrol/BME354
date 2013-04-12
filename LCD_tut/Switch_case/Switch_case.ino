@@ -17,7 +17,9 @@ boolean select = true;
 int buttonPin = A0;
 
 int lcd_key = 0;
+int last_key = 0;
 int adc_key_in = 0;
+
 #define btnRIGHT 0
 #define btnUP 1
 #define btnDOWN 2
@@ -54,20 +56,31 @@ int debounce(int last)
   }
   return current;
 }
-
+int increment(int num)
+{
+  num++;
+  if num > 60 num = 0;
+  return num;
+}
+int decrement(int num)
+{
+  num--;
+  if num < 0 num = 60;
+  return num;
+}
 void setup()
 {
 lcd.begin(16, 2); // start the library
 Serial.begin(9600);
 // Set up the timer
-
-
+minutes = 0;
+timer = 0;
 }
 
 
 void loop()
 {
-lcd.print("Set Timer for Minutes");
+lcd.print("Set Minutes");
 lcd.setCursor(0,1);
 lcd.blink();
 while (select == true) {
