@@ -3,6 +3,7 @@
 /*******************************************************
 This program will test the LCD panel and the buttons
 Mark Bramwell, July 2010
+Modified by Group 06, April 2013
 ********************************************************/
 // select the pins used on the LCD panel
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
@@ -21,7 +22,8 @@ int buttonPin = A0;
 
 int lcd_key = 0;
 int adc_key_in = 0;
-int wait_len = 250;
+int wait_len = 200; // wait to avoid repeat readinsg
+boolean running = 1; //should we be pausing
 #define btnRIGHT 0
 #define btnUP 1
 #define btnDOWN 2
@@ -58,33 +60,33 @@ int debounce(int last)
   }
   return current;
 }
-int increment(int num)
+int increment(int num) // wrap around to keep minutes and seconds within 0-59
 {
   num++;
   if (num > 59) num = 0;
   return num;
 }
-int decrement(int num)
+int decrement(int num) // opposite of decrement
 {
   num--;
   if (num < 0) num = 59;
   return num;
 }
-void printtime(void)
+void printtime(void) // print the current minutes:seconds combo in the bottom left
 {
   lcd.setCursor(0,1);
-    if (minutes > 9)
+    if (minutes > 9) //if it takes 2 spaces to print
     {
       lcd.print(minutes);
       lcd.print(":");
     }
-    else
+    else // otherwise pad with a 0
     {
       lcd.print("0");
       lcd.print(minutes);
       lcd.print(":");
     }
-    if (seconds > 9)
+    if (seconds > 9) // same for seconds
     {
       lcd.print(seconds);
     }
@@ -94,7 +96,7 @@ void printtime(void)
       lcd.print(seconds);    
     }
 }
-void time_passes()
+void time_passes() // increment time while in RUN mode
 {
   delay(1000);
   seconds = decrement(seconds);
@@ -110,29 +112,28 @@ Serial.begin(9600);
 void loop()
 {
 lcd_key = read_LCD_buttons(); // read the buttons
-Serial.println(select);
-switch (select) 
+switch (select) // which stage are we at?
 {
-  case 0:
+  case 0: // MIN selection mode
   { 
    lcd.setCursor(0,0);   
    lcd.print("Set Minutes");
    printtime();
    switch (lcd_key)
    {
-     case btnUP:
+     case btnUP: // increment minutes
      {
        delay(wait_len);
        minutes = increment(minutes);
        break;
      }
-     case btnDOWN:
+     case btnDOWN: //decrement minutes
      {
        delay(wait_len);
        minutes = decrement(minutes);
        break;
      }
-     case btnSELECT:
+     case btnSELECT: // go to next stage
      {
        delay(wait_len);
        select = 1;
@@ -141,7 +142,7 @@ switch (select)
    }
    break;
   }
-  case 1:
+  case 1: // analogous to minute selection, but for seconds
   {
    lcd.setCursor(0,0);   
    lcd.print("Set Seconds");
@@ -170,12 +171,19 @@ switch (select)
    }
     break;
   }
-  case 2:
+  case 2: // Running mode
   {
    lcd.setCursor(0,0);  
    lcd.print("GO!");
+   if (running) {
    time_passes();
    printtime();
+   }
+   if (lcd_key == btnRIGHT) 
+   {
+     delay(wait_len);
+     running = !running;
+   }
    break;
   }
 }
