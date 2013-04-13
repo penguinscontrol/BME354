@@ -53,15 +53,17 @@ byte flame2[8] = {
 // Variables
 int buttonPin = A0;
 int tempPin = A1;
+
 int setpoint = 90;
-int tempVal = analogRead(tempPin);
+int tempVal;
+
 int lcd_key = 0; // what button is being pressed?
 int adc_key_in = 0; // what voltage is being applied to button pin?
 int cur_but = btnNONE;
-int wait_len = 150; // wait to avoid repeat readings
 
 boolean running = 1; //should we be pausing?
 
+int t_wait;
 int select = 0;
 /*
 0 = temperature selection;
@@ -92,14 +94,16 @@ int debounce(int last)
   return current;
 }
 
-void waitforrelease(void){
+void waitforrelease(int t){
   cur_but = read_LCD_buttons();
   int t_press = millis();
   while (cur_but != btnNONE){
     cur_but = read_LCD_buttons();
     int cur_t = millis();
-    if(cur_t > (t_press + 100)) break;    
-    //Serial.println("looping");
+    if(cur_t > (t_press + t)) {
+      if (t > 100) t = t-100;
+      break;
+    }
   }
 }
 void print_temp(int temp){
@@ -147,9 +151,10 @@ void loop()
       lcd_key = read_LCD_buttons();
       //Serial.println(lcd_key);
       if (lcd_key == btnNONE) {
+        t_wait = 700;
         break;
       }
-      waitforrelease();
+      waitforrelease(t_wait);
       switch (lcd_key){
         case btnUP:
         {
@@ -163,6 +168,7 @@ void loop()
         }
         case btnSELECT:
         {
+          lcd.clear();
           select = 1;
           break;
         }
@@ -171,13 +177,7 @@ void loop()
     }
     case 1:
     {
-      lcd.clear();
-      select = 2;
-      break;
-      
-    }
-    case 2:
-    {
+      tempVal = analogRead(tempPin);
       message(tempVal, setpoint);
       break;
     }
