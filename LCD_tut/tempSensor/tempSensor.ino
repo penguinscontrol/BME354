@@ -17,12 +17,11 @@ int aboveSP = 1;
 int overheat = 2;
 
 int read_temp_val = 0;
+int tempVal;
 
-int state = analogRead(tempPin);
-int voltage = state * (5.0/1023) // convert temperature sensor readings to scaled voltage ( 0 to 5 V)
-int tempVal = voltage * (1/.005) // convert scaled voltage to temperature (in degrees C)
 int read_temp()
 {
+  tempVal = analogRead(tempPin);
   if (tempVal <= setpoint)          return belowSP; 
   if (tempVal > setpoint && < 300)  return aboveSP;
   if (tempVal >= 300)               return overheat;
@@ -31,6 +30,7 @@ int read_temp()
 void setup() {
   Serial.begin(9600);
   pinMode(heaterPin, OUTPUT);
+  lcd.begin(16, 2); // start the library
 }
   
 void loop() {
@@ -38,16 +38,16 @@ void loop() {
     switch (read_temp_val) // is the temperature below or above the set point?
     {
       case belowSP: { // case for when temperature is below the set point
-      digitalWrite(heaterPin, HIGH)// turn oven on
+      digitalWrite(heaterPin, HIGH); // turn oven on
       break;
       }
       case aboveSP: {// case for when temperature is above the set point and below 300
-      digitalWrite(heaterPin, LOW) // turn oven off
+      digitalWrite(heaterPin, LOW); // turn oven off
       break; 
       }
       case overheat: {// case for when temperature is above 300 degrees
-      digitalWrite(heaterPin, LOW) // turn oven off
-      lcd.print("Warning! Over 300 Celsius. Turn le oven off. ")
+      digitalWrite(heaterPin, LOW); // turn oven off
+      lcd.print("Warning! Over 300 Celsius. Turn le oven off.");
       }
     }
 }
