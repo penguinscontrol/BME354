@@ -46,8 +46,7 @@ void temp_control(int setpoint)
       break; 
       }
     }
-    
-}  
+} 
 
 void message(int tempVal, int setpoint)
 {
