@@ -52,7 +52,9 @@ byte flame2[8] = {
 };
 // Variables
 int buttonPin = A0;
-int setpoint = 100;
+int tempPin = A1;
+int setpoint = 90;
+int tempVal = analogRead(tempPin);
 int lcd_key = 0; // what button is being pressed?
 int adc_key_in = 0; // what voltage is being applied to button pin?
 int cur_but = btnNONE;
@@ -102,15 +104,17 @@ void waitforrelease(void){
 }
 void print_temp(int temp){
   lcd.setCursor(0,1);
-  if (temp > 100)
-  {
-    lcd.print(temp);
+    if (temp > 99) 
+    {
+      lcd.print(temp);
+    }
+    else 
+    {
+      lcd.print("0");
+      lcd.print(temp);
+    }
   }
-  else {
-    lcd.print("0");
-    lcd.print(temp);
-  }
-}
+
 
 void setup()
 {
@@ -120,6 +124,16 @@ void setup()
   lcd.createChar(2, flame2);
 }
 
+
+void message(int temp, int setpoint)
+{
+  lcd.setCursor(0,0); // set cursor to first column, first row
+  lcd.print("Current T:");
+  lcd.print(temp);
+  lcd.setCursor(0,1); // set cursor to first column, second row
+  lcd.print("Setpoint T:");
+  lcd.print(setpoint);
+}
 
 void loop()
 {
@@ -157,6 +171,14 @@ void loop()
     }
     case 1:
     {
+      lcd.clear();
+      select = 2;
+      break;
+      
+    }
+    case 2:
+    {
+      message(tempVal, setpoint);
       break;
     }
   }
