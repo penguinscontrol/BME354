@@ -1,26 +1,5 @@
-/* Temperature Controller Objective 1 and 2
-   Group 06
-   */
-  
-
-// include the library code:
+//Sample using LiquidCrystal library
 #include <LiquidCrystal.h>
-
-// select the pins used on the LCD panel
-LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-
-int tempPin = A1;    // select the input pin for the temperature sensor
-int heaterPin = D13;   // select the output pin for the heater
-int setpoint = 100;
-int belowSP = 0;
-int aboveSP = 1;
-int overheat = 2;
-int buttonPin = A0;
-
-int lcd_key = 0; // what button is being pressed?
-int adc_key_in = 0; // what voltage is being applied to button pin?
-int wait_len = 150; // wait to avoid repeat readinsg
-boolean running = 1; //should we be pausing?
 #define btnRIGHT 0
 #define btnUP 1
 #define btnDOWN 2
@@ -33,8 +12,62 @@ boolean running = 1; //should we be pausing?
 #define V4 430
 #define V5 660
 #define VNONE 1003
+/*******************************************************
+This program will test the LCD panel and the buttons
+Mark Bramwell, July 2010
+Modified by Group 06, April 2013
+
+USER MANUAL
+The device begins with reading in minutes and seconds for the timer.
+1. To set minutes, increment and decrement the value using UP and DOWN.
+2. When done, press SELECT to go to seconds selection.
+3. UP and DOWN to select seconds
+4. Press SELECT again to start timer.
+5. The RIGHT button toggles the timer on/off
+6. When time is 00:00, the world commences to burn.
+******************************************************/
+// select the pins used on the LCD panel
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+// define some values used by the panel and buttons
+byte flame1[8] = {
+        B00100,
+        B01100,
+        B01010,
+        B01010,
+        B10011,
+        B11011,
+        B11111,
+        B01110
+};
+
+byte flame2[8] = {
+        B00100,
+        B00110,
+        B01110,
+        B01010,
+        B11001,
+        B11001,
+        B11111,
+        B01110
+};
+// Variables
+int buttonPin = A0;
+int setpoint = 100;
+int lcd_key = 0; // what button is being pressed?
+int adc_key_in = 0; // what voltage is being applied to button pin?
+int cur_but = btnNONE;
+int wait_len = 150; // wait to avoid repeat readings
+
+boolean running = 1; //should we be pausing?
+
+int select = 0;
+/*
+0 = temperature selection;
+1 = running the controller;
+*/
+// read the buttons
 int read_LCD_buttons()
-{
+{  
 adc_key_in = debounce(adc_key_in); // read the value from the sensor
 if (adc_key_in > VNONE) return btnNONE; // We make this the 1st option for speed reasons since 
 if (adc_key_in < V1) return btnRIGHT;
@@ -44,6 +77,7 @@ if (adc_key_in < V4) return btnLEFT;
 if (adc_key_in < V5) return btnSELECT;
 return btnNONE; // when all others fail, return this...
 }
+
 // Improved reading of button state
 int debounce(int last)
 {
@@ -55,55 +89,77 @@ int debounce(int last)
   }
   return current;
 }
-int increment(int num) // wrap around to keep minutes and seconds within 0-59
-{
-  num++;
-  if (num > 300) num = 300;
-  return num;
+
+void waitforrelease(void){
+  cur_but = read_LCD_buttons();
+  int t_press = millis();
+  while (cur_but != btnNONE){
+    cur_but = read_LCD_buttons();
+    int cur_t = millis();
+    if(cur_t > (t_press + 100)) break;    
+    //Serial.println("looping");
+  }
 }
-int decrement(int num) // opposite of decrement
-{
-  num--;
-  if (num < 60) num = 60;
-  return num;
+void print_temp(int temp){
+  lcd.setCursor(0,1);
+  if (temp > 100)
+  {
+    lcd.print(temp);
+  }
+  else {
+    lcd.print("0");
+    lcd.print(temp);
+  }
 }
 
-int read_temp_val = 0;
-
-int state = analogRead(tempPin);
-int voltage = state * (5.0/1023) // convert temperature sensor readings to scaled voltage ( 0 to 5 V)
-int tempVal = voltage * (1/.005) // convert scaled voltage to temperature (in degrees C)
-int read_temp(int setpoint)
+void setup()
 {
-  if (tempVal <= setpoint)          return belowSP; 
-  if (tempVal > setpoint && < 300)  return aboveSP;
-  if (tempVal >= 300)               return overheat;
-}
-  
-void setup() {
+  lcd.begin(16, 2); // start the library
   Serial.begin(9600);
-  pinMode(heaterPin, OUTPUT);
-}
-void tempControl(void) {
-  read_temp_val = read_temp{};
-    switch (read_temp_val) // is the temperature below or above the set point?
-    {
-      case belowSP: { // case for when temperature is below the set point
-      digitalWrite(heaterPin, HIGH)// turn oven on
-      break;
-      }
-      case aboveSP: {// case for when temperature is above the set point and below 300
-      digitalWrite(heaterPin, LOW) // turn oven off
-      break; 
-      }
-      case overheat: {// case for when temperature is above 300 degrees
-      digitalWrite(heaterPin, LOW) // turn oven off
-      lcd.print("Warning! Over 300 Celsius. Turn le oven off. ")
-      }
-    }
+  lcd.createChar(1, flame1);
+  lcd.createChar(2, flame2);
 }
 
-void 
-void loop() {
-  tempControl();
+
+void loop()
+{
+  switch(select)
+  {
+    case 0:
+    {
+      lcd.setCursor(0,0);
+      lcd.print("Desired T:");
+      print_temp(setpoint);
+      lcd_key = read_LCD_buttons();
+      //Serial.println(lcd_key);
+      if (lcd_key == btnNONE) {
+        break;
+      }
+      waitforrelease();
+      switch (lcd_key){
+        case btnUP:
+        {
+          if (setpoint < 250) setpoint++;
+          break;
+        }
+        case btnDOWN:
+        {
+          if (setpoint > 25) setpoint--;
+          break;
+        }
+        case btnSELECT:
+        {
+          select = 1;
+          break;
+        }
+      }
+      break;
+    }
+    case 1:
+    {
+      break;
+    }
+  }
 }
+
+

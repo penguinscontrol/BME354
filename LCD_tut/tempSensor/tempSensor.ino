@@ -46,8 +46,7 @@ void temp_control(int setpoint)
       break; 
       }
     }
-    
-}  
+} 
 
 void setup() {
   Serial.begin(9600);
