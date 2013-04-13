@@ -49,6 +49,17 @@ void temp_control(int setpoint)
     
 }  
 
+void message(int tempVal, int setpoint)
+{
+  lcd.setCursor(0,0);
+  lcd.print("The currrent temperature is: ");
+  lcd.print(tempVal);
+  lcd.setCursor(0,1);
+  lcd.print("The setpoint temperature is: ");
+  lcd.print(setpoint);
+}
+
+
 void setup() {
   Serial.begin(9600);
   pinMode(heaterPin, OUTPUT);
