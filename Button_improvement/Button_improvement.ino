@@ -67,7 +67,7 @@ boolean running = 1; //should we be pausing?
 #define V5 660
 #define VNONE 1003
 // read the buttons
-int read_LCD_buttons()
+int read_LCD_buttons(void)
 {  
 adc_key_in = debounce(adc_key_in); // read the value from the sensor
 if (adc_key_in > VNONE) return btnNONE; // We make this the 1st option for speed reasons since 
@@ -250,7 +250,6 @@ switch (select) // which stage are we at?
     delay(50);
   }
 }
-last_key = lcd_key;
 }
 
 
