@@ -51,11 +51,11 @@ void temp_control(int setpoint)
 
 void message(int tempVal, int setpoint)
 {
-  lcd.setCursor(0,0);
-  lcd.print("The currrent temperature is: ");
+  lcd.setCursor(0,0); // set cursor to first column, first row
+  lcd.print("Currrent Temp: ");
   lcd.print(tempVal);
-  lcd.setCursor(0,1);
-  lcd.print("The setpoint temperature is: ");
+  lcd.setCursor(0,1); // set cursor to first column, second row
+  lcd.print("Setpoint Temp: ");
   lcd.print(setpoint);
 }
 
