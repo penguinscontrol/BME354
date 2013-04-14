@@ -101,7 +101,7 @@ void waitforrelease(int t){
     cur_but = read_LCD_buttons();
     int cur_t = millis();
     if(cur_t > (t_press + t)) {
-      if (t > 100) t = t-100;
+      if (t_wait > 100) t_wait = t_wait - 100;
       break;
     }
   }
