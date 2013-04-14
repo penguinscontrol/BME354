@@ -108,7 +108,7 @@ void waitforrelease(int t){
 }
 void print_temp(int temp){
   lcd.setCursor(0,1);
-    if (temp > 99) 
+    if (temp > 99)
     {
       lcd.print(temp);
     }
