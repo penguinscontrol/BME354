@@ -34,6 +34,10 @@ PID_ATune aTune(&Input, &HotOutput);
 //Reflow curve variables
 double reflow_times[10];
 double reflow_temps[10];
+
+//Expected time constant
+double tau;
+
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
 { //Set the output to the desired starting frequency.
@@ -64,11 +68,13 @@ void TuneGains()
     {
       tuning = false;
     }
+    analogWrite(heatPin,HotOutput);
   }
   //out of loop? we're done, set the tuning parameters
   kp = aTune.GetKp();
   ki = aTune.GetKi();
   kd = aTune.GetKd();
+  tau = aTune.GetPu();
   heatPID.SetTunings(kp,ki,kd);
   AutoTuneHelper(false);
 }
