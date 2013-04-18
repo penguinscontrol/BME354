@@ -13,7 +13,7 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
 int tempPin = 1;    // select the input pin for the temperature sensor
 int heaterPin = 13;   // select the output pin for the heater
-int setpoint = 100;
+int setpoint = 500;
 
 int read_temp_val = 0;
 int tempVal;
@@ -22,8 +22,8 @@ int read_temp(int setpoint)
 {
   tempVal = analogRead(tempPin);
   if (tempVal <= setpoint)          return belowSP; 
-  if (tempVal > setpoint && tempVal < 300)  return aboveSP;
-  if (tempVal >= 300)               return overheat;
+  if (tempVal > setpoint && tempVal < 800)  return aboveSP;
+  if (tempVal >= 800)               return overheat;
 }
 void temp_control(int setpoint)
 {
@@ -43,6 +43,8 @@ void temp_control(int setpoint)
       {
       digitalWrite(heaterPin, LOW); // turn oven off
       lcd.print("Warning! Over 300 Celsius. Turn le oven off.");
+      Serial.print("WARNING: OVERHEATING");
+      Serial.print("\n");
       break; 
       }
     }
@@ -50,12 +52,18 @@ void temp_control(int setpoint)
 
 void message(int tempVal, int setpoint)
 {
-  lcd.setCursor(0,0); // set cursor to first column, first row
+  /*lcd.setCursor(0,0); // set cursor to first column, first row
   lcd.print("Current Temp:");
   lcd.print(tempVal);
   lcd.setCursor(0,1); // set cursor to first column, second row
   lcd.print("Setpoint Temp:");
-  lcd.print(setpoint);
+  lcd.print(setpoint);*/
+  Serial.print("Current Temp: ");
+  Serial.print(tempVal);
+  Serial.print("\n");
+  Serial.print("Setpoint Temp: ");
+  Serial.print(setpoint);
+  Serial.print("\n");
 }
 
 
@@ -67,4 +75,5 @@ void setup() {
 
 void loop() {
 temp_control(setpoint);
+message(tempVal, setpoint);
 }

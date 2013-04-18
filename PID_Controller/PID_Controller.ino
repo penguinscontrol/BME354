@@ -3,6 +3,7 @@
  * Reading analog input 0 to control analog PWM output 3
  ********************************************************/
 
+#include <EEPROM.h>
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
 
@@ -12,7 +13,7 @@ int tmpPin = 1;
 
 //Define output pins
 int heatPin = 3;
-int coolPin = 4;
+int coolPin = 5;
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, HotOutput, CoolOutput;
@@ -20,7 +21,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
 double kp=2,ki=0.5,kd=2;
-double outputStart=5;
+double outputStart=50;
 double aTuneStep=50, aTuneNoise=1, aTuneStartValue=100;
 unsigned int aTuneLookBack=20;
 boolean tuning = false;
@@ -37,7 +38,12 @@ double reflow_temps[10];
 
 //Expected time constant
 double tau;
+//What is room temperature in AD counts? last rm_temp cal available at EEPROM 0
+int rm_temp;
 
+
+//Temporary Variables
+int counter = 0;
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
 { //Set the output to the desired starting frequency.
@@ -79,8 +85,31 @@ void TuneGains()
   AutoTuneHelper(false);
 }
 
+void find_rm_temp()
+{
+  rm_temp = analogRead(tmpPin);
+  int addr = 0;
+  EEPROM.write(addr, rm_temp/4);
+}
+void get_rm_temp()
+{
+  rm_temp = value = EEPROM.read(0)*4;
+}
+
+int read_temp()
+{
+  return analogRead(tmpPin)-rm_temp+25;
+}
+
+void next_step()
+{
+  
+}
+/************MAIN*********/
+
 void setup()
 {
+  Serial.begin(9600);
   //initialize the variables we're linked to
   Input = analogRead(tmpPin);
   Setpoint = 100;
@@ -91,10 +120,21 @@ void setup()
 
 void loop()
 {
-  TuneGains();
-  Input = analogRead(tmpPin);
+  if (counter == 0)
+  {
+    find_rm_temp();
+    counter++;
+  }
+  
+  Serial.print("Room temp is:");
+  Serial.print(rm_temp);
+  Serial.print("\n");
+  delay(1000);
+  
+  /*TuneGains();
+  Input = read_temp();
   heatPID.Compute();
   analogWrite(heatPin,HotOutput);
   coolPID.Compute();
-  analogWrite(coolPin,CoolOutput);
+  analogWrite(coolPin,CoolOutput);*/
 }
