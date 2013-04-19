@@ -33,18 +33,21 @@ PID coolPID(&Input, &CoolOutput, &Setpoint,2,5,1, REVERSE);
 PID_ATune aTune(&Input, &HotOutput);
 
 //Reflow curve variables
-int counter = 0;
-double input_times[4];
-double input_temps[2];
+int counter = 1;
+double input_times[4] = {130, 250, 320, 420};
+double input_temps[2]= {150, 220};
 double use_times[5];
 double use_temps[5];
 //Expected time constant
-double tau;
+int tau = 2000;
 //What is room temperature in AD counts? last rm_temp cal available at EEPROM 0
 int rm_temp = 20;
 int theoretical_rm_temp = 20;
-
+//
+int select = 0;
 //Temporary Variables
+int last_updated;
+double cur_incr;
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
 { //Set the output to the desired starting frequency.
@@ -70,7 +73,15 @@ void TuneGains()
   autoTuneSetup();
   while (tuning)
   {
-    byte val = (aTune.Runtime());    
+    Input = read_temp();
+    byte val = (aTune.Runtime());
+      Serial.println("tuning mode");
+      Serial.print("kp: ");Serial.print(heatPID.GetKp());Serial.print(" ");
+      Serial.print("ki: ");Serial.print(heatPID.GetKi());Serial.print(" ");
+      Serial.print("kd: ");Serial.print(heatPID.GetKd());Serial.println();
+      Serial.print("Current Temp: ");
+      Serial.print(Input);
+      Serial.print("\n");
     if (val!=0)
     {
       tuning = false;
@@ -117,47 +128,99 @@ void get_use_points()
   use_times[4] = millis()+input_times[3]*1000;
 }
 
-double calculate_goal_increment(int counter)
+double calculate_goal_increment(int coun)
 {
-  double next_time = use_times[counter];
-  double last_time = use_times[counter-1];
-  double next_temp = use_temps[counter];
-  double last_temp = use_temps[counter-1];
+  double next_time = use_times[coun];
+  double last_time = use_times[coun-1];
+  double next_temp = use_temps[coun];
+  double last_temp = use_temps[coun-1];
   double dti = next_time-last_time;
   double dte = next_temp-last_temp;
-  return 1000*dte/dti;
+  return tau*dte/dti;
 }
 
-void next_goal()
+void message(int tempVal, int setpoint)
 {
-  ;
+  /*lcd.setCursor(0,0); // set cursor to first column, first row
+  lcd.print("Current Temp:");
+  lcd.print(tempVal);
+  lcd.setCursor(0,1); // set cursor to first column, second row
+  lcd.print("Setpoint Temp:");
+  lcd.print(setpoint);*/
+  Serial.print("Current Temp: ");
+  Serial.print(tempVal);
+  Serial.print("\n");
+  Serial.print("Setpoint Temp: ");
+  Serial.print(setpoint);
+  Serial.print("\n");
+  Serial.print("Control signal: ");
+  Serial.print(HotOutput);
+  Serial.print("\n");
 }
-/************MAIN*********/
+/************ MAIN *********/
 
 void setup()
 {
   Serial.begin(9600);
+  
   //initialize the variables we're linked to
   Input = analogRead(tmpPin);
   Setpoint = 100;
+  
   //turn the PID on
   heatPID.SetMode(AUTOMATIC);
   coolPID.SetMode(AUTOMATIC);
+  rm_temp = get_rm_temp();
 }
 
 void loop()
 {
-  rm_temp = get_rm_temp();
+  switch(select) {
+    case 0:
+    {
+      TuneGains();
+      get_use_points();
+      last_updated = millis();
+      cur_incr = calculate_goal_increment(counter);
+      Setpoint = rm_temp+cur_incr;
+      select = 1;
+      break;
+    }
+    case 1:
+    {
+      Input = read_temp();
+      
+      heatPID.Compute();
+      analogWrite(heatPin,HotOutput);
+      coolPID.Compute();
+      analogWrite(coolPin,CoolOutput);
+      
+      if(millis()>last_updated+tau)
+      {
+        last_updated += tau;
+        Setpoint += cur_incr;
+      }
+      if(millis()>use_times[counter])
+      {
+        counter++;
+        cur_incr = calculate_goal_increment(counter);
+        if (counter > 4) select = 2;
+      }
+      message(Input, Setpoint);
+      break;
+    }
+    case 2:
+    {
+      analogWrite(heatPin,0);
+      analogWrite(coolPin,0);
+      break;
+    }
+  }
   
-  Serial.print("Room temp corresponds to: ");
+  /*Serial.print("Room temp corresponds to: ");
   Serial.print(rm_temp);
   Serial.print("\n");
-  delay(1000);
+  delay(1000);*/
   
-  /*TuneGains();
-  Input = read_temp();
-  heatPID.Compute();
-  analogWrite(heatPin,HotOutput);
-  coolPID.Compute();
-  analogWrite(coolPin,CoolOutput);*/
+  /*TuneGains();*/
 }
