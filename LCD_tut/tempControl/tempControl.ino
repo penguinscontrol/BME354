@@ -70,7 +70,7 @@ int cur_but = btnNONE;
 boolean running = 1; //should we be pausing?
 
 int t_wait;
-int select = 0;
+int select = 1;
 /*
 0 = temperature selection;
 1 = running the controller;
@@ -125,16 +125,16 @@ void print_temp(int temp){
     }
   }
 
-int read_temp(int setpoint)
+int read_temp(int set)
 {
   tempVal = analogRead(tempPin);
-  if (tempVal <= setpoint)          return belowSP; 
-  if (tempVal > setpoint && tempVal < 800)  return aboveSP;
+  if (tempVal <= set)          return belowSP; 
+  if (tempVal > set && tempVal < 800)  return aboveSP;
   if (tempVal >= 800)               return overheat;
 }
-void temp_control(int setpoint)
+void temp_control(int setp)
 {
-    read_temp_val = read_temp(setpoint);
+    read_temp_val = read_temp(setp);
     switch (read_temp_val){ // is the temperature below or above the set point?
       case belowSP:  // case for when temperature is below the set point
       {
@@ -165,14 +165,14 @@ void setup()
   lcd.createChar(2, flame2);
 }
 
-void message(int temp, int setpoint)
+void message(int temp, int setpo)
 {
   lcd.setCursor(0,0); // set cursor to first column, first row
   lcd.print("Current T:");
   lcd.print(temp);
   lcd.setCursor(0,1); // set cursor to first column, second row
   lcd.print("Setpoint T:");
-  lcd.print(setpoint);
+  lcd.print(setpo);
 }
 int increment_var(int out, int l_lim, int r_lim)
 {

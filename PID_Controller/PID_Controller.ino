@@ -157,6 +157,14 @@ void message(int tempVal, int setpoint)
   Serial.print(HotOutput);
   Serial.print("\n");
 }
+void sendPlotData(String seriesName, float data)
+{
+  Serial.print("{");
+  Serial.print(seriesName);
+  Serial.print(",T,");
+  Serial.print(data);
+  Serial.println("}");
+}
 /************ MAIN *********/
 
 void setup()
