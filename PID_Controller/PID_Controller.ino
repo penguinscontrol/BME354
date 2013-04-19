@@ -33,17 +33,18 @@ PID coolPID(&Input, &CoolOutput, &Setpoint,2,5,1, REVERSE);
 PID_ATune aTune(&Input, &HotOutput);
 
 //Reflow curve variables
-double reflow_times[10];
-double reflow_temps[10];
-
+int counter = 0;
+double input_times[4];
+double input_temps[2];
+double use_times[5];
+double use_temps[5];
 //Expected time constant
 double tau;
 //What is room temperature in AD counts? last rm_temp cal available at EEPROM 0
-int rm_temp;
-
+int rm_temp = 20;
+int theoretical_rm_temp = 20;
 
 //Temporary Variables
-int counter = 0;
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
 { //Set the output to the desired starting frequency.
@@ -91,19 +92,45 @@ void find_rm_temp()
   int addr = 0;
   EEPROM.write(addr, rm_temp/4);
 }
-void get_rm_temp()
+
+int get_rm_temp()
 {
-  rm_temp = value = EEPROM.read(0)*4;
+  return EEPROM.read(0)*4;
 }
 
 int read_temp()
 {
-  return analogRead(tmpPin)-rm_temp+25;
+  return analogRead(tmpPin)-rm_temp+theoretical_rm_temp;
 }
 
-void next_step()
+void get_use_points()
 {
-  
+  use_temps[0] = get_rm_temp();
+  use_times[0] = millis();
+  use_temps[1] = input_temps[0];
+  use_times[1] = millis()+input_times[0]*1000;
+  use_temps[2] = input_temps[0];
+  use_times[2] = millis()+input_times[1]*1000;
+  use_temps[3] = input_temps[1];
+  use_times[3] = millis()+input_times[2]*1000;
+  use_temps[4] = get_rm_temp();
+  use_times[4] = millis()+input_times[3]*1000;
+}
+
+double calculate_goal_increment(int counter)
+{
+  double next_time = use_times[counter];
+  double last_time = use_times[counter-1];
+  double next_temp = use_temps[counter];
+  double last_temp = use_temps[counter-1];
+  double dti = next_time-last_time;
+  double dte = next_temp-last_temp;
+  return 1000*dte/dti;
+}
+
+void next_goal()
+{
+  ;
 }
 /************MAIN*********/
 
@@ -120,13 +147,9 @@ void setup()
 
 void loop()
 {
-  if (counter == 0)
-  {
-    find_rm_temp();
-    counter++;
-  }
+  rm_temp = get_rm_temp();
   
-  Serial.print("Room temp is:");
+  Serial.print("Room temp corresponds to: ");
   Serial.print(rm_temp);
   Serial.print("\n");
   delay(1000);

@@ -12,6 +12,10 @@
 #define V4 430
 #define V5 660
 #define VNONE 1003
+
+#define belowSP 0
+#define aboveSP 1
+#define overheat 2
 /*******************************************************
 This program will test the LCD panel and the buttons
 Mark Bramwell, July 2010
@@ -51,10 +55,12 @@ byte flame2[8] = {
         B01110
 };
 // Variables
-int buttonPin = A0;
-int tempPin = A1;
+int tempPin = 1;    // select the input pin for the temperature sensor
+int buttonPin = 0;
+int heaterPin = 13;   // select the output pin for the heater
+int setpoint = 500;
 
-int setpoint = 90;
+int read_temp_val = 0;
 int tempVal;
 
 int lcd_key = 0; // what button is being pressed?
@@ -119,6 +125,37 @@ void print_temp(int temp){
     }
   }
 
+int read_temp(int setpoint)
+{
+  tempVal = analogRead(tempPin);
+  if (tempVal <= setpoint)          return belowSP; 
+  if (tempVal > setpoint && tempVal < 800)  return aboveSP;
+  if (tempVal >= 800)               return overheat;
+}
+void temp_control(int setpoint)
+{
+    read_temp_val = read_temp(setpoint);
+    switch (read_temp_val){ // is the temperature below or above the set point?
+      case belowSP:  // case for when temperature is below the set point
+      {
+      digitalWrite(heaterPin, HIGH); // turn oven on
+      break;
+      }
+      case aboveSP: // case for when temperature is above the set point and below 300
+      {
+      digitalWrite(heaterPin, LOW); // turn oven off
+      break; 
+      }
+      case overheat: // case for when temperature is above 300 degrees
+      {
+      digitalWrite(heaterPin, LOW); // turn oven off
+      lcd.print("Warning! Over 300 Celsius. Turn le oven off.");
+      Serial.print("WARNING: OVERHEATING");
+      Serial.print("\n");
+      break; 
+      }
+    }
+} 
 
 void setup()
 {
@@ -127,7 +164,6 @@ void setup()
   lcd.createChar(1, flame1);
   lcd.createChar(2, flame2);
 }
-
 
 void message(int temp, int setpoint)
 {
@@ -138,7 +174,35 @@ void message(int temp, int setpoint)
   lcd.print("Setpoint T:");
   lcd.print(setpoint);
 }
-
+int increment_var(int out, int l_lim, int r_lim)
+{
+      lcd_key = read_LCD_buttons();
+      //Serial.println(lcd_key);
+      if (lcd_key == btnNONE) {
+        t_wait = 700;
+        return out;
+      }
+      waitforrelease(t_wait);
+      switch (lcd_key){
+        case btnUP:
+        {
+          if (out < r_lim) out++;
+          break;
+        }
+        case btnDOWN:
+        {
+          if (out > l_lim) out--;
+          break;
+        }
+        case btnSELECT:
+        {
+          lcd.clear();
+          select++;
+          break;
+        }
+      }
+      return out;
+}
 void loop()
 {
   switch(select)
@@ -148,36 +212,13 @@ void loop()
       lcd.setCursor(0,0);
       lcd.print("Desired T:");
       print_temp(setpoint);
-      lcd_key = read_LCD_buttons();
-      //Serial.println(lcd_key);
-      if (lcd_key == btnNONE) {
-        t_wait = 700;
-        break;
-      }
-      waitforrelease(t_wait);
-      switch (lcd_key){
-        case btnUP:
-        {
-          if (setpoint < 250) setpoint++;
-          break;
-        }
-        case btnDOWN:
-        {
-          if (setpoint > 25) setpoint--;
-          break;
-        }
-        case btnSELECT:
-        {
-          lcd.clear();
-          select = 1;
-          break;
-        }
-      }
+      setpoint = increment_var(setpoint, 25, 750);
       break;
     }
     case 1:
     {
       tempVal = analogRead(tempPin);
+      temp_control(setpoint);
       message(tempVal, setpoint);
       break;
     }
