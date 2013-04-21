@@ -20,7 +20,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
-double kp=2,ki=0.5,kd=2;
+double kp=2,ki=0.1,kd=5;
 double outputStart=50;
 double aTuneStep=50, aTuneNoise=1, aTuneStartValue=100;
 unsigned int aTuneLookBack=20;
@@ -79,9 +79,7 @@ void TuneGains()
       Serial.print("kp: ");Serial.print(heatPID.GetKp());Serial.print(" ");
       Serial.print("ki: ");Serial.print(heatPID.GetKi());Serial.print(" ");
       Serial.print("kd: ");Serial.print(heatPID.GetKd());Serial.println();
-      Serial.print("Current Temp: ");
-      Serial.print(Input);
-      Serial.print("\n");
+      plot_stuff();
     if (val!=0)
     {
       tuning = false;
@@ -165,6 +163,13 @@ void sendPlotData(String seriesName, float data)
   Serial.print(data);
   Serial.println("}");
 }
+
+void plot_stuff()
+{
+  sendPlotData("Temperature",Input);
+  sendPlotData("Error",heatPID.GetError());
+  sendPlotData("SetPoint",Setpoint);
+}
 /************ MAIN *********/
 
 void setup()
@@ -173,7 +178,11 @@ void setup()
   
   //initialize the variables we're linked to
   Input = analogRead(tmpPin);
-  Setpoint = 100;
+  Setpoint = rm_temp;
+  
+  //Output pins
+   pinMode(heatPin, OUTPUT);
+    pinMode(coolPin, OUTPUT);
   
   //turn the PID on
   heatPID.SetMode(AUTOMATIC);
@@ -203,6 +212,8 @@ void loop()
       coolPID.Compute();
       analogWrite(coolPin,CoolOutput);
       
+      plot_stuff();
+      
       if(millis()>last_updated+tau)
       {
         last_updated += tau;
@@ -214,7 +225,7 @@ void loop()
         cur_incr = calculate_goal_increment(counter);
         if (counter > 4) select = 2;
       }
-      message(Input, Setpoint);
+      //message(Input, Setpoint);
       break;
     }
     case 2:

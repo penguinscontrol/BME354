@@ -49,11 +49,13 @@ int cur_but = btnNONE;
 boolean running = 1; //should we be pausing?
 
 int t_wait;
+
 int select = 1;
 /*
 0 = temperature selection;
 1 = running the controller;
 */
+
 // read the buttons
 int read_LCD_buttons()
 {  
@@ -74,7 +76,7 @@ int debounce(int last)
   if (last != current) // If a change happened
   {
     delay(10); // wait for bounce to settle
-    current = analogRead(buttonPin); 
+    current = analogRead(buttonPin);
   }
   return current;
 }
@@ -141,8 +143,6 @@ void setup()
   lcd.begin(16, 2); // start the library
   pinMode(heaterPin, OUTPUT);
   Serial.begin(9600);
-  lcd.createChar(1, flame1);
-  lcd.createChar(2, flame2);
 }
 
 void message(int temp, int setpoint)
@@ -211,6 +211,7 @@ void loop()
       temp_control(setpoint);
       message(tempVal, setpoint);
       sendPlotData("Temperature", tempVal);
+      //sendPlotData("Error",heatPID.GetError());
       break;
     }
   }
