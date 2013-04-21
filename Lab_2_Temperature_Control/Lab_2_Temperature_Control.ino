@@ -22,13 +22,9 @@ Mark Bramwell, July 2010
 Modified by Group 06, April 2013
 
 USER MANUAL
-The device begins with reading in minutes and seconds for the timer.
-1. To set minutes, increment and decrement the value using UP and DOWN.
-2. When done, press SELECT to go to seconds selection.
-3. UP and DOWN to select seconds
-4. Press SELECT again to start timer.
-5. The RIGHT button toggles the timer on/off
-6. When time is 00:00, the world commences to burn.
+The device begins with reading in the desired temperature.
+1. To set temperature, use the UP and DOWN arrows.
+2. When done, press SELECT to go to operation.
 ******************************************************/
 // select the pins used on the LCD panel
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
@@ -50,7 +46,7 @@ boolean running = 1; //should we be pausing?
 
 int t_wait;
 
-int select = 1;
+int select = 0;
 /*
 0 = temperature selection;
 1 = running the controller;

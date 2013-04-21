@@ -9,11 +9,11 @@
 
 //Define input pins
 int btnPin = 0;
-int tmpPin = 1;
+int tmpPin = 5;
 
 //Define output pins
-int heatPin = 3;
-int coolPin = 5;
+int heatPin = 2;
+int coolPin = 11;
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, HotOutput, CoolOutput;
@@ -39,14 +39,14 @@ double input_temps[2]= {150, 220};
 double use_times[5];
 double use_temps[5];
 //Expected time constant
-int tau = 2000;
+double tau = 2000;
 //What is room temperature in AD counts? last rm_temp cal available at EEPROM 0
-int rm_temp = 20;
-int theoretical_rm_temp = 20;
+double rm_temp = 20;
+double theoretical_rm_temp = 20;
 //
 int select = 0;
 //Temporary Variables
-int last_updated;
+double last_updated;
 double cur_incr;
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
@@ -104,12 +104,12 @@ void find_rm_temp()
 
 int get_rm_temp()
 {
-  return EEPROM.read(0)*4;
+  return (double)EEPROM.read(0)*4;
 }
 
 int read_temp()
 {
-  return analogRead(tmpPin)-rm_temp+theoretical_rm_temp;
+  return (double)analogRead(tmpPin)-(double)rm_temp+(double)theoretical_rm_temp;
 }
 
 void get_use_points()
@@ -177,7 +177,7 @@ void setup()
   Serial.begin(9600);
   
   //initialize the variables we're linked to
-  Input = analogRead(tmpPin);
+  Input = (double)analogRead(tmpPin);
   Setpoint = rm_temp;
   
   //Output pins
@@ -195,7 +195,7 @@ void loop()
   switch(select) {
     case 0:
     {
-      TuneGains();
+      //TuneGains();
       get_use_points();
       last_updated = millis();
       cur_incr = calculate_goal_increment(counter);
@@ -205,8 +205,8 @@ void loop()
     }
     case 1:
     {
-      Input = read_temp();
-      
+      //Input = read_temp();
+      Input = analogRead(tmpPin);
       heatPID.Compute();
       analogWrite(heatPin,HotOutput);
       coolPID.Compute();
@@ -216,9 +216,10 @@ void loop()
       
       if(millis()>last_updated+tau)
       {
-        last_updated += tau;
+        last_updated = millis();
         Setpoint += cur_incr;
       }
+      
       if(millis()>use_times[counter])
       {
         counter++;
