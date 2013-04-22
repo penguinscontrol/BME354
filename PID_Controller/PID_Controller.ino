@@ -330,15 +330,16 @@ void loop()
       lcd.setCursor(0,0);
       lcd.print("Time to Soak?:");
       print_temp(input_temps[0]);
-      input_temps[0] = increment_var(input_temps[0], input_temps[0]/3, input_temps[0]/1);
+      input_times[0] = increment_var(input_times[0], input_temps[0]/3, input_temps[0]/1);
+      if (select == 2) input_times[1] = input_times[0]+30;
       break;
     }
      case 2:
     {
       lcd.setCursor(0,0);
       lcd.print("Time to Ramp?:");
-      print_temp(input_temps[0]+input_times[1]);
-      input_times[1] = increment_var(input_times[0]+input_times[1], input_times[0]+60, input_times[0]+120);
+      print_temp(input_times[1]);
+      input_times[1] = increment_var(input_times[1], input_times[0]+60, input_times[0]+120);
       break;
     }
      case 3:
@@ -347,14 +348,16 @@ void loop()
       lcd.print("Peak Temp:");
       print_temp(input_temps[1]);
       input_temps[1] = increment_var(input_temps[1], 200, 240);
+      if (select == 4)  input_times[2] = input_times[1]+(input_temps[1]-input_temps[0])/3;
       break;
     }
      case 4:
     {
       lcd.setCursor(0,0);
       lcd.print("Time to Peak?:");
-      print_temp(input_times[0]+input_times[1]+input_times[1]);
-      input_times[2] = increment_var(input_times[0]+input_times[1]+input_times[2],input_times[0]+input_times[1]+(input_temps[1]-input_temps[0])/3,input_times[0]+input_times[1]+(input_temps[1]-input_temps[0])/1);
+      print_temp(input_times[2]);
+      input_times[2] = increment_var(input_times[2],input_times[1]+(input_temps[1]-input_temps[0])/3,input_times[1]+(input_temps[1]-input_temps[0])/1);
+      if (select == 5) input_times[3] = input_times[2]+(input_temps[1]-rm_temp)/4;
       break;
     }
     case 5:
@@ -362,7 +365,7 @@ void loop()
       lcd.setCursor(0,0);
       lcd.print("Time to Cool?:");
       print_temp(input_times[3]);
-      input_times[3] = increment_var(input_times[0]+input_times[1]+input_times[2]+input_times[3],input_times[0]+input_times[1]+input_times[2]+(input_temps[1]-25)/4,input_times[0]+input_times[1]+input_times[2]+(input_temps[1]-25)/2);
+      input_times[3] = increment_var(input_times[3],input_times[2]+(input_temps[1]-rm_temp)/4,input_times[2]+(input_temps[1]-rm_temp)/2);
       break;
     }
     case 6:
