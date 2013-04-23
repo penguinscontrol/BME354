@@ -30,7 +30,7 @@ int btnPin = 0;
 int tmpPin = 5;
 
 //Define output pins
-int heatPin = 2;
+int heatPin = 3;
 int coolPin = 11;
 
 //Define Variables we'll be connecting to
@@ -38,7 +38,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
-double kp=4,ki=0.1,kd=0;
+double kp=2,ki=0.1,kd=5;
 double outputStart=100;
 double aTuneStep=100, aTuneNoise=1, aTuneStartValue=100;
 unsigned int aTuneLookBack=20;
@@ -76,7 +76,7 @@ int lcd_key = 0; // what button is being pressed?
 int adc_key_in = 0; // what voltage is being applied to button pin?
 int cur_but = btnNONE;
 int t_wait = 600; // how long until a pressed button registers again?
-
+int temp_input;
 
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
@@ -191,6 +191,7 @@ void message(double tempVal, double setpoint)
   Serial.print(HotOutput);
   Serial.print("\n ");
 }
+
 void sendPlotData(String seriesName, double data)
 {
   Serial.print("{");
@@ -300,6 +301,7 @@ void setup()
   Serial.begin(9600);
   lcd.begin(16, 2); // start the LCD
   //find_rm_temp();
+  
   //initialize the variables we're linked to
   Input = read_temp();
   Setpoint = rm_temp;
@@ -308,7 +310,8 @@ void setup()
   //Output pins
    pinMode(heatPin, OUTPUT);
    pinMode(coolPin, OUTPUT);
-  
+   pinMode(tmpPin,INPUT);
+   
   //turn the PID on
   heatPID.SetMode(AUTOMATIC);
   coolPID.SetMode(AUTOMATIC);
@@ -316,109 +319,51 @@ void setup()
 
 void loop()
 {
-  /*Input = read_temp()-rm_temp+theoretical_rm_temp;
-  delay(1000);
-  print_temp(Input);*/
   switch(select) {
     case 0:
     {
       lcd.setCursor(0,0);
-      lcd.print("Soak Temp?:");
-      print_temp(input_temps[0]);
-      input_temps[0] = increment_var(input_temps[0], 130, 170);
+      lcd.print("Getting room temp");
+      find_rm_temp();
+      print_temp(rm_temp);
+      Setpoint = increment_var(Setpoint, 130, 170);
       break;
     }
+    
      case 1:
     {
+      Input = round(9*Input/10+(double)analogRead(tmpPin)/10);
       lcd.setCursor(0,0);
-      lcd.print("Time to Soak?:");
-      print_temp(input_times[0]);
-      input_times[0] = increment_var(input_times[0], (input_temps[0]/3), (input_temps[0]/1));
-      if (select == 2) input_times[1] = input_times[0]+90;
+      lcd.print(Input);
+      plot_stuff();
+      Setpoint = increment_var(Setpoint, 130, 170);
+      if (select == 2) Setpoint = 75;
       break;
     }
+    
      case 2:
     {
-      lcd.setCursor(0,0);
-      lcd.print("Time to Ramp?:");
-      print_temp(input_times[1]);
-      input_times[1] = increment_var(input_times[1], input_times[0]+60, input_times[0]+120);
+      lcd.clear();
+      Input = round(9*Input/10+(double)analogRead(tmpPin)/10);
+      heatPID.Compute();
+      analogWrite(heatPin,(int)HotOutput);
+      
+      Setpoint = increment_var(Setpoint, 0, 255);
+      plot_stuff();
+      if (select == 3) Setpoint = 100;
       break;
     }
      case 3:
     {
       lcd.setCursor(0,0);
-      lcd.print("Peak Temp:");
-      print_temp(input_temps[1]);
-      input_temps[1] = increment_var(input_temps[1], 200, 240);
-      if (select == 4)  input_times[2] = input_times[1]+(input_temps[1]-input_temps[0])/2;
-      break;
-    }
-     case 4:
-    {
-      lcd.setCursor(0,0);
-      lcd.print("Time to Peak?:");
-      print_temp(input_times[2]);
-      input_times[2] = increment_var(input_times[2],input_times[1]+(input_temps[1]-input_temps[0])/3,input_times[1]+(input_temps[1]-input_temps[0])/1);
-      if (select == 5) input_times[3] = input_times[2]+(input_temps[1]-rm_temp)/3;
-      break;
-    }
-    case 5:
-    {
-      lcd.setCursor(0,0);
-      lcd.print("Time to Cool?:");
-      print_temp(input_times[3]);
-      input_times[3] = increment_var(input_times[3],input_times[2]+(input_temps[1]-rm_temp)/4,input_times[2]+(input_temps[1]-rm_temp)/2);
-      break;
-    }
-    case 6:
-    {
-      //TuneGains();
-      get_use_points();
-      last_updated = millis();
-      while (millis()<last_updated+10000)
-      {
-        analogWrite(heatPin,255);
-      }
-      last_updated = millis();
-      cur_incr = calculate_goal_increment(counter);
-      Setpoint = rm_temp+cur_incr;
-      select++;
-      break;
-    }
-    case 7:
-    {
-      Input = read_temp();
-      heatPID.Compute();
-      analogWrite(heatPin,(int)HotOutput);
-      coolPID.Compute();
-      analogWrite(coolPin,CoolOutput);
-      
-      plot_stuff();
-      //message(Input, Setpoint);
-      
-      if((double)millis() > last_updated+tau)
-      {
-        last_updated = (double)millis();
-        Setpoint += cur_incr;
-      }
-      
-      if((double)millis() > use_times[counter])
-      {
-        counter++;
-        cur_incr = calculate_goal_increment(counter);
-        if (counter > 4) select++;
-      }
-      break;
-    }
-    case 8:
-    {
-      analogWrite(heatPin,0);
-      analogWrite(coolPin,0);
+      lcd.print("PWM TEST");
+      lcd.setCursor(0,1);
+      lcd.print(Setpoint);
+      Setpoint = increment_var(Setpoint, 0, 255);
+      analogWrite(heatPin,(int)Setpoint);
       break;
     }
   }
-  
   /*Serial.print("Room temp corresponds to: ");
   Serial.print(rm_temp);
   Serial.print("\n");
