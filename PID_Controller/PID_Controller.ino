@@ -76,7 +76,8 @@ int lcd_key = 0; // what button is being pressed?
 int adc_key_in = 0; // what voltage is being applied to button pin?
 int cur_but = btnNONE;
 int t_wait = 600; // how long until a pressed button registers again?
-
+boolean shouldtune;
+char* Stages[]={"Ramp", "Soak", "Peak","Cooling"};
 
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
@@ -123,6 +124,7 @@ void TuneGains()
   tau = aTune.GetPu();
   heatPID.SetTunings(kp,ki,kd);
   AutoTuneHelper(false);
+  select++;
 }
 
 void find_rm_temp()
@@ -245,8 +247,8 @@ if (adc_key_in < V5) return btnSELECT;
 return btnNONE; // when all others fail, return this...
 }
 
-void print_temp(int temp){
-  lcd.setCursor(0,1);
+void print_temp(int temp,int x, int y){
+  lcd.setCursor(x,y);
     if (temp > 99)
     {
       lcd.print(temp);
@@ -293,6 +295,59 @@ double increment_var(double out, double l_lim, double r_lim)
       }
       return out;
 }
+
+void shouldi(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print("AutoTune Gains?");
+  lcd.setCursor(0,1);
+  if (shouldtune){
+      lcd.print("Y");
+    }
+  else
+    {
+      lcd.print("N");
+    }
+  lcd_key = read_LCD_buttons();
+  if (lcd_key == btnNONE) {
+        t_wait = 600;
+        return;
+      }
+  waitforrelease(t_wait);
+  switch (lcd_key){
+        case btnUP:
+        {
+          shouldtune = true;
+          break;
+        }
+        case btnDOWN:
+        {
+          shouldtune = false;
+          break;
+        }
+        case btnRIGHT:
+        {
+          lcd.clear();
+          select++;
+          break;
+        }
+         case btnLEFT:
+        {
+          lcd.clear();
+          select--;
+          break;
+        }
+      }
+}
+
+void heating_print(){
+  print_temp(Input,0,0);
+  lcd.setCursor(3,0);
+  lcd.print('/');
+  print_temp(input_temps[counter],4,0);
+  lcd.setCursor(0,1);
+  lcd.print(Stages[counter]);      
+}
 /************ MAIN *********/
 
 void setup()
@@ -302,8 +357,9 @@ void setup()
   //find_rm_temp();
   //initialize the variables we're linked to
   Input = read_temp();
+  //rm_temp = get_rm_temp();
+  rm_temp = 20;
   Setpoint = rm_temp;
-  rm_temp = get_rm_temp();
   
   //Output pins
    pinMode(heatPin, OUTPUT);
@@ -324,7 +380,7 @@ void loop()
     {
       lcd.setCursor(0,0);
       lcd.print("Soak Temp?:");
-      print_temp(input_temps[0]);
+      print_temp(input_temps[0],0,1);
       input_temps[0] = increment_var(input_temps[0], 130, 170);
       break;
     }
@@ -332,7 +388,7 @@ void loop()
     {
       lcd.setCursor(0,0);
       lcd.print("Time to Soak?:");
-      print_temp(input_times[0]);
+      print_temp(input_times[0],0,1);
       input_times[0] = increment_var(input_times[0], (input_temps[0]/3), (input_temps[0]/1));
       if (select == 2) input_times[1] = input_times[0]+90;
       break;
@@ -341,7 +397,7 @@ void loop()
     {
       lcd.setCursor(0,0);
       lcd.print("Time to Ramp?:");
-      print_temp(input_times[1]);
+      print_temp(input_times[1],0,1);
       input_times[1] = increment_var(input_times[1], input_times[0]+60, input_times[0]+120);
       break;
     }
@@ -349,7 +405,7 @@ void loop()
     {
       lcd.setCursor(0,0);
       lcd.print("Peak Temp:");
-      print_temp(input_temps[1]);
+      print_temp(input_temps[1],0,1);
       input_temps[1] = increment_var(input_temps[1], 200, 240);
       if (select == 4)  input_times[2] = input_times[1]+(input_temps[1]-input_temps[0])/2;
       break;
@@ -357,8 +413,8 @@ void loop()
      case 4:
     {
       lcd.setCursor(0,0);
-      lcd.print("Time to Peak?:");
-      print_temp(input_times[2]);
+      lcd.print("Time to Peak:");
+      print_temp(input_times[2],0,1);
       input_times[2] = increment_var(input_times[2],input_times[1]+(input_temps[1]-input_temps[0])/3,input_times[1]+(input_temps[1]-input_temps[0])/1);
       if (select == 5) input_times[3] = input_times[2]+(input_temps[1]-rm_temp)/3;
       break;
@@ -366,27 +422,41 @@ void loop()
     case 5:
     {
       lcd.setCursor(0,0);
-      lcd.print("Time to Cool?:");
-      print_temp(input_times[3]);
+      lcd.print("Time to Cool:");
+      print_temp(input_times[3],0,1);
       input_times[3] = increment_var(input_times[3],input_times[2]+(input_temps[1]-rm_temp)/4,input_times[2]+(input_temps[1]-rm_temp)/2);
       break;
     }
     case 6:
     {
+      shouldi();
+      if (select == 7 && !shouldtune) select++;
+      break;
+    }
+    case 7:
+    {
+      lcd.print("Wait for it...");
       //TuneGains();
-      get_use_points();
-      last_updated = millis();
-      while (millis()<last_updated+10000)
-      {
-        analogWrite(heatPin,255);
+      delay(3000);
+      lcd.clear();
+      select++;
+      break;
+    }
+    case 8:
+    {
+      if (shouldtune){
+      lcd.print("DONE! Starting...");
+      delay(2000);
+      lcd.clear();
       }
+      get_use_points();
       last_updated = millis();
       cur_incr = calculate_goal_increment(counter);
       Setpoint = rm_temp+cur_incr;
       select++;
       break;
     }
-    case 7:
+    case 9:
     {
       Input = read_temp();
       heatPID.Compute();
@@ -395,6 +465,7 @@ void loop()
       analogWrite(coolPin,CoolOutput);
       
       plot_stuff();
+      heating_print();
       //message(Input, Setpoint);
       
       if((double)millis() > last_updated+tau)
@@ -411,7 +482,7 @@ void loop()
       }
       break;
     }
-    case 8:
+    case 10:
     {
       analogWrite(heatPin,0);
       analogWrite(coolPin,0);
