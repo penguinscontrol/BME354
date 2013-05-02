@@ -234,13 +234,13 @@ void loop()
       lcd.clear();
       }
       get_use_points();
+      Input = read_temp();
       last_updated = millis();
       windowStartTime = last_updated;
       current_time = last_updated;
       heatPID.SetOutputLimits(0, WindowSize);
       cur_incr = calculate_goal_increment(counter);
       Setpoint = rm_temp+cur_incr;
-      Input = read_temp();
       select++;
       break;
     }
