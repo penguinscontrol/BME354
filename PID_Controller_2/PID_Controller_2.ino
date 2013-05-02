@@ -1,6 +1,6 @@
 /********************************************************
  * PID Basic Example
- * Reading analog input 0 to control analog PWM output 3
+ * Reading analog input 0 to control analog PWM HotOutput 3
  ********************************************************/
 
 #include <EEPROM.h>
@@ -29,7 +29,7 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 int btnPin = 0;
 int tmpPin = 5;
 
-//Define output pins
+//Define HotOutput pins
 int heatPin = 2;
 int coolPin = 11;
 
@@ -39,11 +39,10 @@ double Setpoint, Input, HotOutput, CoolOutput;
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
 double kp=12,ki=0.1,kd=4;
-double outputStart=100;
-double aTuneStep=100, aTuneNoise=1, aTuneStartValue=100;
+double HotOutputStart=200;
+double aTuneStep=200, aTuneNoise=5, aTuneStartValue=250;
 unsigned int aTuneLookBack=20;
 boolean tuning = false;
-unsigned long serialTime;
 
 //Specify the links and initial tuning parameters
 PID heatPID(&Input, &HotOutput, &Setpoint,kp,ki,kd, DIRECT);
@@ -87,15 +86,25 @@ int WindowSize = 500;
 unsigned long windowStartTime;
 unsigned long now = 0;
 /**************** FUNCTIONS *********************************/
-void autoTuneSetup()
-{ //Set the output to the desired starting frequency.
-  HotOutput = aTuneStartValue;
-  aTune.SetNoiseBand(aTuneNoise);
-  aTune.SetOutputStep(aTuneStep);
-  aTune.SetLookbackSec((int)aTuneLookBack);
-  aTune.SetControlType(1);
-  AutoTuneHelper(true);
-  tuning = true;
+void changeAutoTune()
+{
+ if(!tuning)
+  {
+    //Set the HotOutput to the desired starting frequency.
+    HotOutput=aTuneStartValue;
+    aTune.SetNoiseBand(aTuneNoise);
+    aTune.SetOutputStep(aTuneStep);
+    aTune.SetLookbackSec((int)aTuneLookBack);
+    aTune.SetControlType(1);
+    AutoTuneHelper(true);
+    tuning = true;
+  }
+  else
+  { //cancel autotune
+    aTune.Cancel();
+    tuning = false;
+    AutoTuneHelper(false);
+  }
 }
 
 void AutoTuneHelper(boolean start)
@@ -108,27 +117,35 @@ void AutoTuneHelper(boolean start)
 
 void TuneGains()
 {
-  autoTuneSetup();
-  while (tuning)
+  now = millis();
+  if(tuning)
   {
-    now = millis();
-    Input = read_input();
     byte val = (aTune.Runtime());
-      plot_stuff();
+    sendPlotData("OUT",HotOutput);
     if (val!=0)
     {
       tuning = false;
     }
-    fake_PWM(heatPin,HotOutput);
+    if(!tuning)
+    { //we're done, set the tuning parameters
+      kp = aTune.GetKp();
+      ki = aTune.GetKi();
+      kd = aTune.GetKd();
+      
+      EEPROM.write(0, 10*kp);
+      EEPROM.write(1, 10*ki);
+      EEPROM.write(2, 10*kd);
+      
+      heatPID.SetTunings(kp,ki,kd);
+      AutoTuneHelper(false);
+    }
   }
-  //out of loop? we're done, set the tuning parameters
-  kp = aTune.GetKp();
-  ki = aTune.GetKi();
-  kd = aTune.GetKd();
-  //tau = aTune.GetPu();
-  heatPID.SetTunings(kp,ki,kd);
-  AutoTuneHelper(false);
-  select++;
+  else {
+    heatPID.Compute();
+    select++;
+  }
+  
+  fake_PWM(heatPin,HotOutput);
 }
 
 void get_use_points()
@@ -248,21 +265,25 @@ void loop()
     case 6:
     {
       shouldi();
-      if (select == 7 && !shouldtune){ select++;
+      if (select == 7 && !shouldtune){ 
+        select++;
       }
       else if (select == 7 && shouldtune) {
         windowStartTime = millis();
         heatPID.SetOutputLimits(0, WindowSize);
+          tuning=false;
+          changeAutoTune();
+          tuning=true;
       }
       break;
     }
     case 7:
     {
       lcd.print("Wait for it...");
-      //TuneGains();
-      delay(3000);
-      lcd.clear();
-      select++;
+      TuneGains();
+      //delay(3000);
+      //lcd.clear();
+      //select++;
       break;
     }
     case 8:
