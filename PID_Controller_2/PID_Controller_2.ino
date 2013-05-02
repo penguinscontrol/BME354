@@ -40,7 +40,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 byte ATuneModeRemember=2;
 double kp=12,ki=0.1,kd=4;
 double HotOutputStart=200;
-double aTuneStep=200, aTuneNoise=5, aTuneStartValue=250;
+double aTuneStep=300, aTuneNoise=5, aTuneStartValue=250;
 unsigned int aTuneLookBack=20;
 boolean tuning = false;
 
@@ -86,6 +86,9 @@ int WindowSize = 500;
 unsigned long windowStartTime;
 unsigned long now = 0;
 unsigned long current_time;
+
+//Statistics
+double maxovershoot = 0;
 /**************** FUNCTIONS *********************************/
 
 void get_use_points()
@@ -130,6 +133,9 @@ void check_safety()
 {
     if (Input>270){
     digitalWrite(heatPin,0);
+    lcd.clear()
+    lcd.setCursor(0,0);
+    lcd.print("WARNING OVERHEAT");
     select++;
     }
 }

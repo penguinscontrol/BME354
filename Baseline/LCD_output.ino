@@ -37,7 +37,7 @@ void heating_print(){
   print_temp(Input,0,0);
   lcd.setCursor(3,0);
   lcd.print('/');
-  print_temp(use_temps[counter],4,0);
+  print_temp(/*use_temps[counter]*/Setpoint,4,0);
   lcd.setCursor(0,1);
   //lcd.print(Stages[counter-1]);      
   lcd.setCursor(8,1);
