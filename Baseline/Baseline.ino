@@ -76,14 +76,14 @@ int lcd_key = 0; // what button is being pressed?
 int adc_key_in = 0; // what voltage is being applied to button pin?
 int cur_but = btnNONE;
 int t_wait = 600; // how long until a pressed button registers again?
-double temp_input = 100;
+double temp = 100;
 
 //Fake PWM vars
 int WindowSize = 500;
 unsigned long windowStartTime;
 int print_out = 100;
 unsigned long tofnow = 0;
-unsigned long tnow = 0;
+unsigned long now = 0;
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
 { //Set the output to the desired starting frequency.
@@ -109,7 +109,7 @@ void TuneGains()
   autoTuneSetup();
   while (tuning)
   {
-    Input = read_input(Input);
+    Input = read_input();
     byte val = (aTune.Runtime());
       //Serial.println("tuning mode");
       //Serial.print("kp: ");Serial.print(heatPID.GetKp());Serial.print(" ");
@@ -127,6 +127,9 @@ void TuneGains()
   ki = aTune.GetKi();
   kd = aTune.GetKd();
   tau = aTune.GetPu();
+  EEPROM.write(0, aTune.GetKp());
+  EEPROM.write(1, aTune.GetKi());
+  EEPROM.write(2, aTune.GetKd());
   heatPID.SetTunings(kp,ki,kd);
   AutoTuneHelper(false);
 }
@@ -143,16 +146,8 @@ double get_rm_temp()
   return (double)EEPROM.read(0)*4;
 }
 
-double read_input(double in)
+double read_input()
 {
-  //double out = in;
-  //for (int x = 0; x< 1; x++)
-  //{
-  //  delay(5);
-  //  double reader = (double)analogRead(tmpPin);
-  //  delay(5);
-  //  out = 8*out/10+2*reader/10;
-  //}
   double vcc = (double)readVcc();
   double adcvalue = (double)analogRead(tmpPin);
   double out = (adcvalue/5115)*vcc;
@@ -303,7 +298,7 @@ if (adc_key_in < V5) return btnSELECT;
 return btnNONE; // when all others fail, return this...
 }
 
-void print_temp(int temp){
+void print_temp(double temp){
   lcd.setCursor(0,1);
     if (temp > 99)
     {
@@ -389,6 +384,14 @@ long readVcc() {
   return result;
 }
 
+void heating_print(){
+  print_temp(Input);
+  lcd.setCursor(3,0);
+  lcd.print('/');
+  print_temp(input_temps[counter]);
+  lcd.setCursor(0,1);
+  //lcd.print(Stages[counter]);      
+}
 /************ MAIN *********/
 
 void setup()
@@ -419,62 +422,50 @@ void loop()
     {
       lcd.setCursor(0,0);
       lcd.print("Getting room temp");
-      find_rm_temp();
+      rm_temp = read_input();
       print_temp(rm_temp);
-      temp_input = increment_var(temp_input, 10, 100);
+      temp = increment_var(temp, 10, 100);
+      sendPlotData("Temperature",rm_temp);
+      if (select == 1) {
+        Setpoint = 100;
+        Input = round(read_temp());
+        windowStartTime = millis();
+        heatPID.SetOutputLimits(0, WindowSize);
+        select++;
+      }
       break;
     }
     
      case 1:
     {
-      Input = round(read_input(Input));
-      Serial.println( readVcc(), DEC );
-      delay(5);
-      //Input = (double)analogRead(tmpPin);
-      //delay(500);
-      lcd.setCursor(0,0);
-      lcd.print(Input);
-      plot_stuff();
-      temp_input = increment_var(temp_input, 130, 170);
-      if (select == 2) {
-        Setpoint = 100;
-        Input = round(read_temp());
-        windowStartTime = millis();
-        heatPID.SetOutputLimits(0, WindowSize);
-      }
-      break;
-    }
-    
-     case 2:
-    {
-      Input = round(testread(tmpPin));
+      Input = round(read_input());
       tnow = millis();
       heatPID.Compute();
       
       fake_PWM(heatPin,HotOutput);
       
-      temp_input = increment_var(temp_input, 10, 255);
+      temp = increment_var(temp, 10, 255);
       
       plot_stuff();
-      message(Input,Setpoint);
+      heating_print();
       
-      if (select == 3) {
-        temp_input = 250;
+      if (select == 2) {
+        temp = 250;
         lcd.clear();
         windowStartTime = millis();
         tofnow = millis();
       }
       break;
     }
-     case 3:
+     case 2:
     {
       tnow = millis();
       lcd.setCursor(0,0);
       lcd.print("PWM TEST");
       lcd.setCursor(0,1);
-      lcd.print(temp_input);
-      temp_input = increment_var(temp_input, 0, 500);
-      fake_PWM(heatPin,250);
+      lcd.print(temp);
+      temp = increment_var(temp, 0, 500);
+      fake_PWM(heatPin,temp);
       sendPlotData("State",print_out);
       if (millis()>tofnow+3000) select++;
       break;
