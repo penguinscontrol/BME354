@@ -38,7 +38,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
-double kp=12,ki=0.1,kd=4;
+double kp=25,ki=0.5,kd=16;
 double HotOutputStart=200;
 double aTuneStep=300, aTuneNoise=5, aTuneStartValue=250;
 unsigned int aTuneLookBack=20;
@@ -57,7 +57,7 @@ double use_times[5];
 double use_temps[5];
 
 //Expected time constant
-double tau = 7500;
+double tau = 5000;
 
 //What is room temperature in AD counts? last rm_temp cal available at EEPROM 0
 double rm_temp = 20;
@@ -89,8 +89,19 @@ unsigned long current_time;
 
 //Statistics
 double maxovershoot = 0;
+double standarddev = 0;
+double standarddev_n = 0;
+
+// ***** DEGREE SYMBOL FOR LCD *****
+unsigned char degree[8]  = {
+  140,146,146,140,128,128,128,128};
+
 /**************** FUNCTIONS *********************************/
 
+/* Converts user input times and temperature for further use:
+times are cast in miliseconds, relative to onset of PID control. Room temperature
+is added to ends of reflow curve automatically.
+*/
 void get_use_points()
 {
   use_temps[0] = rm_temp;
@@ -105,17 +116,23 @@ void get_use_points()
   use_times[4] = (double)millis()+input_times[3]*1000;
 }
 
+/*
+Find the temperature slope corresponding to the stage we're at.
+*/
 double calculate_goal_increment(int coun)
 {
-  double next_time = use_times[coun];
+  double next_time = use_times[coun]; // Where are we headed?
   double last_time = use_times[coun-1];
-  double next_temp = use_temps[coun];
+  double next_temp = use_temps[coun]; // Where did we come from?
   double last_temp = use_temps[coun-1];
-  double dti = next_time-last_time;
-  double dte = next_temp-last_temp;
-  return tau*dte/dti;
+  double dti = next_time-last_time; // Time difference
+  double dte = next_temp-last_temp; // Temperature difference
+  return tau*dte/dti; // Tau is the time step between settling on a new goal.
 }
 
+/*
+Emulate low frequency PWM to appease the solid state relay gods.
+*/
 void fake_PWM(int pin,double in)
 {
     if(now - windowStartTime>WindowSize)
@@ -129,15 +146,29 @@ void fake_PWM(int pin,double in)
     digitalWrite(pin,HIGH);
   }
 }
+/*
+Don't blow up. Blowing up would be bad and potentially hurt our grade.
+*/
 void check_safety()
 {
-    if (Input>270){
+  if (Input>270 || maxovershoot < -30){ // negative error means temperature is higher than setpoint. See PID library for details.
     digitalWrite(heatPin,0);
-    lcd.clear()
+    lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("WARNING OVERHEAT");
+    lcd.setCursor(0,1);
+    lcd.print("");
     select++;
     }
+}
+/*
+How well did we do?
+*/
+void get_stats()
+{
+  if (heatPID.GetError() < maxovershoot) maxovershoot = heatPID.GetError();
+  standarddev += pow((double)heatPID.GetError(),2);
+  standarddev_n += 1;
 }
 /************ MAIN *********/
 
@@ -145,6 +176,7 @@ void setup()
 {
   Serial.begin(9600);
   lcd.begin(16, 2); // start the LCD
+  lcd.createChar(1, degree);
   
   //initialize the variables we're linked to
   Input = read_temp();
@@ -159,6 +191,8 @@ void setup()
   //turn the PID on
   heatPID.SetMode(AUTOMATIC);
   coolPID.SetMode(AUTOMATIC);
+  
+  
 }
 
 void loop()
@@ -234,15 +268,12 @@ void loop()
     {
       lcd.print("Wait for it...");
       TuneGains();
-      //delay(3000);
-      //lcd.clear();
-      //select++;
       break;
     }
     case 8:
     {
       if (shouldtune){
-      lcd.print("DONE! Starting...");
+      lcd.print("DONE TUNING!");
       delay(2000);
       lcd.clear();
       }
@@ -267,6 +298,7 @@ void loop()
       analogWrite(coolPin,CoolOutput);
       
       check_safety();
+      get_stats();
       plot_stuff();
       heating_print();
       
@@ -281,8 +313,9 @@ void loop()
         counter++;
         cur_incr = calculate_goal_increment(counter);
         last_updated = (double)millis();
-        if (counter > 4) {
+        if (counter > 5) {
           select++;
+          standarddev = sqrt(standarddev/standarddev_n);
           lcd.clear();
         }
       }
@@ -291,9 +324,25 @@ void loop()
     case 10:
     {
       lcd.setCursor(0,0);
-      lcd.print("Enjoy! :)");
+      lcd.print("Done! We hope");
+      lcd.setCursor(0,1);
+      lcd.print("you enjoyed.");
+      delay(3000);
+      lcd.clear();
+      
+      lcd.print("Max Overshoot:");
+      lcd.setCursor(0,1);
+      lcd.print(abs(maxovershoot));
+      delay(3000);
+      lcd.clear();
+      
+      lcd.print("Standard Dev:");
+      lcd.setCursor(0,1);
+      lcd.print(standarddev);
+      delay(3000);
       analogWrite(heatPin,0);
       analogWrite(coolPin,0);
+      lcd.clear();
       break;
     }
   }

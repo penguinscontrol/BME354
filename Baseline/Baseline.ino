@@ -221,7 +221,7 @@ void loop()
       lcd.setCursor(0,0);
       lcd.print("Getting room temp");
       rm_temp = round(read_input(rm_temp));
-      //rm_temp = round(testread(tmpPin));
+      //rm_temp = round(analogRead(tmpPin));
       print_temp(rm_temp,0,1);
       temp = increment_var(temp, 10, 100);
       sendPlotData("Temperature",rm_temp);

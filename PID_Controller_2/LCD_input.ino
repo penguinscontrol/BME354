@@ -11,7 +11,7 @@ int debounce(int last)
   }
   return current;
 }
-
+// Button down? wait for it to be released before continuing, unless user holds more than t_press
 void waitforrelease(int t){
   cur_but = read_LCD_buttons();
   int t_press = millis();
@@ -37,6 +37,7 @@ if (adc_key_in < V5) return btnSELECT;
 return btnNONE; // when all others fail, return this...
 }
 
+// increment a variable via LCD buttons, within some limits
 double increment_var(double out, double l_lim, double r_lim)
 {
       lcd_key = read_LCD_buttons();
@@ -73,6 +74,7 @@ double increment_var(double out, double l_lim, double r_lim)
       return out;
 }
 
+// use to decide about AutoTuning
 void shouldi(void)
 {
   lcd.setCursor(0,0);

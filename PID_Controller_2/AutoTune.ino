@@ -2,10 +2,9 @@ void changeAutoTune()
 {
  if(!tuning)
   {
-    //Set the HotOutput to the desired starting frequency.
-    HotOutput=aTuneStartValue;
-    aTune.SetNoiseBand(aTuneNoise);
-    aTune.SetOutputStep(aTuneStep);
+    HotOutput=aTuneStartValue; //Set the HotOutput to the desired starting frequency.
+    aTune.SetNoiseBand(aTuneNoise); //What counts as noise?
+    aTune.SetOutputStep(aTuneStep); 
     aTune.SetLookbackSec((int)aTuneLookBack);
     aTune.SetControlType(1);
     AutoTuneHelper(true);

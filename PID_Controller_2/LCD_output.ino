@@ -1,4 +1,4 @@
-
+// MegunoLink Plotting
 void sendPlotData(String seriesName, double data)
 {
   Serial.print("{");
@@ -15,7 +15,7 @@ void plot_stuff()
   sendPlotData("SetPoint",Setpoint);
   sendPlotData("Output",HotOutput);
 }
-
+// make sure temp is 3 characters
 void print_temp(int temp,int x, int y){
   lcd.setCursor(x,y);
     if (temp > 99)
@@ -32,19 +32,22 @@ void print_temp(int temp,int x, int y){
       lcd.print(temp);
     }
   }
-  
+//during PID print current/set temperature, plus current stage
 void heating_print(){
-  print_temp(Input,0,0);
-  lcd.setCursor(3,0);
-  lcd.print('/');
-  print_temp(use_temps[counter],4,0);
+  lcd.print("T:");
+  print_temp(Input,2,0);
+  lcd.write(1);
+  lcd.print("C  S:");
+  print_temp(use_temps[counter],11,0);
+  lcd.write(1);
+  lcd.print("C");
   lcd.setCursor(0,1);
   lcd.print(Stages[counter-1]);      
   lcd.setCursor(8,1);
   //lcd.print(millis());
   timekeeper();
 }
-
+// time relative to PID control onset.
 void timekeeper(){
   lcd.setCursor(8,1);
    print_time(millis() - current_time); 
