@@ -126,6 +126,13 @@ void fake_PWM(int pin,double in)
     digitalWrite(pin,HIGH);
   }
 }
+void check_safety()
+{
+    if (Input>270){
+    digitalWrite(heatPin,0);
+    select++;
+    }
+}
 /************ MAIN *********/
 
 void setup()
@@ -253,6 +260,7 @@ void loop()
       coolPID.Compute();
       analogWrite(coolPin,CoolOutput);
       
+      check_safety();
       plot_stuff();
       heating_print();
       

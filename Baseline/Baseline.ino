@@ -84,7 +84,7 @@ unsigned long windowStartTime;
 int print_out = 100;
 unsigned long tofnow = 0;
 unsigned long now = 0;
-
+unsigned long current_time = 0;
 //aoutotuner
 boolean shouldtune = false;
 /**************** FUNCTIONS *********************************/
@@ -201,7 +201,7 @@ void setup()
   //initialize the variables we're linked to
   Input = read_temp();
   Setpoint = rm_temp;
-  rm_temp = get_rm_temp();
+  rm_temp = read_temp();
   
   //Output pins
    pinMode(heatPin, OUTPUT);

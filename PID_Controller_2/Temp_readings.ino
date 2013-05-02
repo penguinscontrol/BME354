@@ -1,6 +1,6 @@
 double read_temp()
 {
-  double ins;
+  double ins = 0;
   double vcc;
   double adcvalue;
   double interm;
@@ -62,7 +62,7 @@ long readVcc() {
 
 double read_input(double in)
 {
-  double out = round(5/10*in+5/10*testread(tmpPin));
+  double out = in*0.5+testread(tmpPin)*0.5;
   return out;
 }
 
