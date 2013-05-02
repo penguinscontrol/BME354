@@ -84,6 +84,9 @@ unsigned long windowStartTime;
 int print_out = 100;
 unsigned long tofnow = 0;
 unsigned long now = 0;
+
+//aoutotuner
+boolean shouldtune = false;
 /**************** FUNCTIONS *********************************/
 void autoTuneSetup()
 { //Set the output to the desired starting frequency.
@@ -172,46 +175,6 @@ double calculate_goal_increment(int coun)
   return tau*dte/dti;
 }
 
-void message(double tempVal, double setpoint)
-{
-  lcd.setCursor(0,0); // set cursor to first column, first row
-  lcd.print("Temp:");
-  lcd.print(tempVal);
-  lcd.setCursor(0,1); // set cursor to first column, second row
-  lcd.print("Set Temp:");
-  lcd.print(setpoint);
-}
-
-void sendPlotData(String seriesName, double data)
-{
-  Serial.print("{");
-  Serial.print(seriesName);
-  Serial.print(",T,");
-  Serial.print(data);
-  Serial.println("}");
-}
-
-void plot_stuff()
-{
-  sendPlotData("Temperature",Input);
-  sendPlotData("Error",heatPID.GetError());
-  sendPlotData("SetPoint",Setpoint);
-  sendPlotData("Output",HotOutput);
-}
-
-void print_temp(int temp,int x, int y){
-  lcd.setCursor(x,y);
-    if (temp > 99)
-    {
-      lcd.print(temp);
-    }
-    else
-    {
-      lcd.print("0");
-      lcd.print(temp);
-    }
-  }
-  
 void fake_PWM(int pin,double in)
 {
     if(now - windowStartTime>WindowSize)
@@ -226,15 +189,6 @@ void fake_PWM(int pin,double in)
     digitalWrite(pin,HIGH);
     print_out = 100;
   }
-}
-
-void heating_print(){
-  print_temp(Input,0,1);
-  lcd.setCursor(3,0);
-  lcd.print('/');
-  //print_temp(input_temps[counter]);
-  lcd.setCursor(0,1);
-  //lcd.print(Stages[counter]);      
 }
 /************ MAIN *********/
 
@@ -309,7 +263,7 @@ void loop()
       lcd.setCursor(0,1);
       lcd.print(temp);
       temp = increment_var(temp, 0, 500);
-      fake_PWM(heatPin,250);
+      fake_PWM(heatPin,temp);
       sendPlotData("State",print_out);
       if (millis()>tofnow+35000) select++;
       break;

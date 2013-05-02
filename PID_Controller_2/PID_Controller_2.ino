@@ -86,67 +86,6 @@ int WindowSize = 500;
 unsigned long windowStartTime;
 unsigned long now = 0;
 /**************** FUNCTIONS *********************************/
-void changeAutoTune()
-{
- if(!tuning)
-  {
-    //Set the HotOutput to the desired starting frequency.
-    HotOutput=aTuneStartValue;
-    aTune.SetNoiseBand(aTuneNoise);
-    aTune.SetOutputStep(aTuneStep);
-    aTune.SetLookbackSec((int)aTuneLookBack);
-    aTune.SetControlType(1);
-    AutoTuneHelper(true);
-    tuning = true;
-  }
-  else
-  { //cancel autotune
-    aTune.Cancel();
-    tuning = false;
-    AutoTuneHelper(false);
-  }
-}
-
-void AutoTuneHelper(boolean start)
-{
-  if(start)
-    ATuneModeRemember = heatPID.GetMode();
-  else
-    heatPID.SetMode(ATuneModeRemember);
-}
-
-void TuneGains()
-{
-  now = millis();
-  if(tuning)
-  {
-    byte val = (aTune.Runtime());
-    sendPlotData("OUT",HotOutput);
-    if (val!=0)
-    {
-      tuning = false;
-    }
-    if(!tuning)
-    { //we're done, set the tuning parameters
-      kp = aTune.GetKp();
-      ki = aTune.GetKi();
-      kd = aTune.GetKd();
-      
-      EEPROM.write(0, 10*kp);
-      EEPROM.write(1, 10*ki);
-      EEPROM.write(2, 10*kd);
-      
-      heatPID.SetTunings(kp,ki,kd);
-      AutoTuneHelper(false);
-    }
-  }
-  else {
-    heatPID.Compute();
-    select++;
-  }
-  
-  fake_PWM(heatPin,HotOutput);
-}
 
 void get_use_points()
 {
@@ -295,7 +234,7 @@ void loop()
       }
       get_use_points();
       last_updated = millis();
-      windowStartTime = millis();
+      windowStartTime = last_updated;
       heatPID.SetOutputLimits(0, WindowSize);
       cur_incr = calculate_goal_increment(counter);
       Setpoint = rm_temp+cur_incr;
@@ -337,11 +276,4 @@ void loop()
       break;
     }
   }
-  
-  /*Serial.print("Room temp corresponds to: ");
-  Serial.print(rm_temp);
-  Serial.print("\n");
-  delay(1000);*/
-  
-  /*TuneGains();*/
 }

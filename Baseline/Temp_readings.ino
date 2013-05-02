@@ -4,10 +4,10 @@ double read_temp()
   double vcc;
   double adcvalue;
   double interm;
-  for (int c = 0; c <64; c++)
+  for (int c = 0; c <128; c++)
   {
     interm = testread(tmpPin);
-    ins += interm/64;
+    ins += interm/128;
   }
   return ins;
 }

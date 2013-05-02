@@ -39,7 +39,7 @@ void heating_print(){
   lcd.print('/');
   print_temp(input_temps[counter],4,0);
   lcd.setCursor(0,1);
-  lcd.print(Stages[counter]);      
+  //lcd.print(Stages[counter]);      
   lcd.setCursor(8,1);
   lcd.print(millis());
 }
