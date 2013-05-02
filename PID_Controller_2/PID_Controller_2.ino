@@ -38,7 +38,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
-double kp=4,ki=0.1,kd=0;
+double kp=12,ki=0.1,kd=4;
 double outputStart=100;
 double aTuneStep=100, aTuneNoise=1, aTuneStartValue=100;
 unsigned int aTuneLookBack=20;
@@ -58,7 +58,7 @@ double use_times[5];
 double use_temps[5];
 
 //Expected time constant
-double tau = 2000;
+double tau = 7500;
 
 //What is room temperature in AD counts? last rm_temp cal available at EEPROM 0
 double rm_temp = 20;
@@ -285,7 +285,7 @@ void loop()
     case 9:
     {
       now = millis();
-      Input = read_input();
+      Input = read_input(Input);
       heatPID.Compute();
       fake_PWM(heatPin,HotOutput);
       coolPID.Compute();

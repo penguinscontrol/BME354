@@ -65,7 +65,7 @@ double rm_temp = 20;
 double theoretical_rm_temp = 22;
 
 // Stage selector
-int select = 1;
+int select = 0;
 
 //Temporary Variables
 double last_updated;
@@ -109,7 +109,8 @@ void TuneGains()
   autoTuneSetup();
   while (tuning)
   {
-    Input = read_input();
+    now = millis();
+    Input = read_input(Input);
     byte val = (aTune.Runtime());
       //Serial.println("tuning mode");
       //Serial.print("kp: ");Serial.print(heatPID.GetKp());Serial.print(" ");
@@ -146,59 +147,6 @@ double get_rm_temp()
   return (double)EEPROM.read(0)*4;
 }
 
-double read_input()
-{
-  double vcc = (double)readVcc();
-  double adcvalue = (double)analogRead(tmpPin);
-  double out = (adcvalue/5115)*vcc;
-  return out;
-}
-
-#define NUM_READS 100
-double testread(int sensorpin){
-   // read multiple values and sort them to take the mode
-   int sortedValues[NUM_READS];
-   for(int i=0;i<NUM_READS;i++){
-     int value = analogRead(sensorpin);
-     int j;
-     if(value<sortedValues[0] || i==0){
-        j=0; //insert at first position
-     }
-     else{
-       for(j=1;j<i;j++){
-          if(sortedValues[j-1]<=value && sortedValues[j]>=value){
-            // j is insert position
-            break;
-          }
-       }
-     }
-     for(int k=i;k>j;k--){
-       // move all values higher than current reading up one position
-       sortedValues[k]=sortedValues[k-1];
-     }
-     sortedValues[j]=value; //insert current reading
-   }
-   //return scaled mode of 10 values
-   float returnval = 0;
-   for(int i=NUM_READS/2-5;i<(NUM_READS/2+5);i++){
-     returnval +=sortedValues[i];
-   }
-   returnval = returnval/10;
-   double vcc = (double)readVcc();
-   double out = ((double)returnval/5115)*vcc;
-   return out;
-}
-
-double read_temp()
-{
-  double ins = 0;
-  for (int c = 1; c <257; c++)
-  {
-    ins = 9*ins/10+(double)analogRead(tmpPin)/10;
-  }
-  return ins;
-}
-
 void get_use_points()
 {
   use_temps[0] = get_rm_temp();
@@ -232,16 +180,6 @@ void message(double tempVal, double setpoint)
   lcd.setCursor(0,1); // set cursor to first column, second row
   lcd.print("Set Temp:");
   lcd.print(setpoint);
-  /*Serial.print("\n");
-  Serial.print("Current Temp: ");
-  Serial.print(tempVal);
-  Serial.print("\n");
-  Serial.print("Setpoint Temp: ");
-  Serial.print(setpoint);
-  Serial.print("\n");
-  Serial.print("Control signal: ");
-  Serial.print(HotOutput);
-  Serial.print("\n ");*/
 }
 
 void sendPlotData(String seriesName, double data)
@@ -298,8 +236,8 @@ if (adc_key_in < V5) return btnSELECT;
 return btnNONE; // when all others fail, return this...
 }
 
-void print_temp(double temp){
-  lcd.setCursor(0,1);
+void print_temp(int temp,int x, int y){
+  lcd.setCursor(x,y);
     if (temp > 99)
     {
       lcd.print(temp);
@@ -349,11 +287,11 @@ double increment_var(double out, double l_lim, double r_lim)
 
 void fake_PWM(int pin,double in)
 {
-    if(tnow - windowStartTime>WindowSize)
+    if(now - windowStartTime>WindowSize)
   { //time to shift the Relay Window
     windowStartTime += WindowSize;
   }
-  if(in < tnow - windowStartTime) {
+  if(in < now - windowStartTime) {
     print_out = 0;
     digitalWrite(pin,LOW);
   }
@@ -371,24 +309,11 @@ void fake_PWM(int pin,double in)
   }*/
 }
 
-long readVcc() {
-  long result;
-  // Read 1.1V reference against AVcc
-  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  delay(5); // Wait for Vref to settle
-  ADCSRA |= _BV(ADSC); // Convert
-  while (bit_is_set(ADCSRA,ADSC));
-  result = ADCL;
-  result |= ADCH<<8;
-  result = 1125300L / result; // Back-calculate AVcc in mV
-  return result;
-}
-
 void heating_print(){
-  print_temp(Input);
+  print_temp(Input,0,1);
   lcd.setCursor(3,0);
   lcd.print('/');
-  print_temp(input_temps[counter]);
+  //print_temp(input_temps[counter]);
   lcd.setCursor(0,1);
   //lcd.print(Stages[counter]);      
 }
@@ -422,8 +347,8 @@ void loop()
     {
       lcd.setCursor(0,0);
       lcd.print("Getting room temp");
-      rm_temp = read_input();
-      print_temp(rm_temp);
+      rm_temp = round(read_input(rm_temp));
+      print_temp(rm_temp,0,1);
       temp = increment_var(temp, 10, 100);
       sendPlotData("Temperature",rm_temp);
       if (select == 1) {
@@ -431,15 +356,15 @@ void loop()
         Input = round(read_temp());
         windowStartTime = millis();
         heatPID.SetOutputLimits(0, WindowSize);
-        select++;
+        //select++;
       }
       break;
     }
     
      case 1:
     {
-      Input = round(read_input());
-      tnow = millis();
+      Input = read_input(Input);
+      now = millis();
       heatPID.Compute();
       
       fake_PWM(heatPin,HotOutput);
@@ -459,15 +384,15 @@ void loop()
     }
      case 2:
     {
-      tnow = millis();
+      now = millis();
       lcd.setCursor(0,0);
       lcd.print("PWM TEST");
       lcd.setCursor(0,1);
       lcd.print(temp);
       temp = increment_var(temp, 0, 500);
-      fake_PWM(heatPin,temp);
+      fake_PWM(heatPin,250);
       sendPlotData("State",print_out);
-      if (millis()>tofnow+3000) select++;
+      if (millis()>tofnow+35000) select++;
       break;
     }
   }
