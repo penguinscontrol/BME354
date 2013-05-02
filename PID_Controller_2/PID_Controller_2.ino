@@ -85,6 +85,7 @@ char* Stages[]={"Ramp", "Soak", "Peak","Cooling"};
 int WindowSize = 500;
 unsigned long windowStartTime;
 unsigned long now = 0;
+unsigned long current_time;
 /**************** FUNCTIONS *********************************/
 
 void get_use_points()
@@ -235,6 +236,7 @@ void loop()
       get_use_points();
       last_updated = millis();
       windowStartTime = last_updated;
+      current_time = last_updated;
       heatPID.SetOutputLimits(0, WindowSize);
       cur_incr = calculate_goal_increment(counter);
       Setpoint = rm_temp+cur_incr;

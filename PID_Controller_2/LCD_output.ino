@@ -37,17 +37,16 @@ void heating_print(){
   print_temp(Input,0,0);
   lcd.setCursor(3,0);
   lcd.print('/');
-  print_temp(input_temps[counter],4,0);
+  print_temp(use_temps[counter],4,0);
   lcd.setCursor(0,1);
-  lcd.print(Stages[counter]);      
+  lcd.print(Stages[counter-1]);      
   lcd.setCursor(8,1);
-  lcd.print(millis());
+  //lcd.print(millis());
+  timekeeper();
 }
 
 void timekeeper(){
   lcd.setCursor(8,1);
-   
-   current_time = millis();
    print_time(millis() - current_time); 
 }
 
