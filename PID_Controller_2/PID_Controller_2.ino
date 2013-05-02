@@ -265,12 +265,17 @@ void loop()
         counter++;
         cur_incr = calculate_goal_increment(counter);
         last_updated = (double)millis();
-        if (counter > 4) select++;
+        if (counter > 4) {
+          select++;
+          lcd.clear();
+        }
       }
       break;
     }
     case 10:
     {
+      lcd.setCursor(0,0);
+      lcd.print("Enjoy! :)");
       analogWrite(heatPin,0);
       analogWrite(coolPin,0);
       break;
