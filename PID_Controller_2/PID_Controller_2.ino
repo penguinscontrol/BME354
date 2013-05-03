@@ -38,7 +38,7 @@ double Setpoint, Input, HotOutput, CoolOutput;
 
 //Define Variables for AutoTuner
 byte ATuneModeRemember=2;
-double kp=25,ki=0.5,kd=16;
+double kp=30,ki=0.5,kd=18;
 double HotOutputStart=200;
 double aTuneStep=300, aTuneNoise=5, aTuneStartValue=250;
 unsigned int aTuneLookBack=20;
@@ -151,15 +151,18 @@ Don't blow up. Blowing up would be bad and potentially hurt our grade.
 */
 void check_safety()
 {
-  if (Input>270 || maxovershoot < -30){ // negative error means temperature is higher than setpoint. See PID library for details.
+  if (Input>270)      safety_procedure();// negative error means temperature is higher than setpoint. See PID library for details.
+  if (counter != 4 && maxovershoot <-30) safety_procedure();
+}
+void safety_procedure(){
     digitalWrite(heatPin,0);
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("WARNING OVERHEAT");
+    delay(3000);
     lcd.setCursor(0,1);
     lcd.print("");
-    select++;
-    }
+    select = 11;
 }
 /*
 How well did we do?
@@ -167,8 +170,9 @@ How well did we do?
 void get_stats()
 {
   if (heatPID.GetError() < maxovershoot) maxovershoot = heatPID.GetError();
-  standarddev += pow((double)heatPID.GetError(),2);
+  standarddev += sq((double)heatPID.GetError());
   standarddev_n += 1;
+  Serial.println(standarddev_n);
 }
 /************ MAIN *********/
 
@@ -279,12 +283,17 @@ void loop()
       }
       get_use_points();
       Input = read_temp();
-      last_updated = millis();
-      windowStartTime = last_updated;
-      current_time = last_updated;
       heatPID.SetOutputLimits(0, WindowSize);
       cur_incr = calculate_goal_increment(counter);
       Setpoint = rm_temp+cur_incr;
+      
+      digitalWrite(heatPin,HIGH);
+      delay(3000);
+      digitalWrite(heatPin,LOW);
+      
+      last_updated = millis();
+      windowStartTime = last_updated;
+      current_time = last_updated;
       select++;
       break;
     }
@@ -313,9 +322,10 @@ void loop()
         counter++;
         cur_incr = calculate_goal_increment(counter);
         last_updated = (double)millis();
-        if (counter > 5) {
+        if (counter > 4) {
           select++;
-          standarddev = sqrt(standarddev/standarddev_n);
+          standarddev = standarddev/standarddev_n;
+          standarddev = sqrt(standarddev);
           lcd.clear();
         }
       }
@@ -343,6 +353,21 @@ void loop()
       analogWrite(heatPin,0);
       analogWrite(coolPin,0);
       lcd.clear();
+      break;
+    }
+    case 11:
+    {
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Arduino has ");
+      lcd.setCursor(0,1);
+      lcd.print("failed you.");
+      delay(3000);
+      lcd.setCursor(0,0);
+      lcd.print("It will now ");
+      lcd.setCursor(0,1);
+      lcd.print("selfdestruct. :(");
+      delay(3000);      
       break;
     }
   }
